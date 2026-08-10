@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from backend.app.schemas.robot import RobotResponse
+from backend.app.schemas.robot import RobotResponse, RobotCommand
 
 
 router = APIRouter(prefix="/robots", tags=["robots"])
@@ -38,5 +38,19 @@ def get_robot(robot_id: str):
     for robot in robots:
         if robot["id"] == robot_id:
             return robot
+
+    raise HTTPException(status_code=404, detail="Robot not found")
+
+@router.post("/{robot_id}/command")
+def send_command(robot_id: str, command: RobotCommand):
+    for robot in robots:
+        if robot["id"] == robot_id:
+            # Here you would implement the logic to send the command to the robot.
+            # For now, we'll just return a success message.
+            return {
+                "robot_id": robot_id,
+                "command": command.command,
+                "status": "accepted",
+            }
 
     raise HTTPException(status_code=404, detail="Robot not found")

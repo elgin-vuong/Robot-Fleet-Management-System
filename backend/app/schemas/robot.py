@@ -8,3 +8,6 @@ class RobotResponse(BaseModel):
     y: float
     speed: float
     status: str
+
+class RobotCommand(BaseModel):
+    command: str
