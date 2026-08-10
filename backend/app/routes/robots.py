@@ -45,8 +45,16 @@ def get_robot(robot_id: str):
 def send_command(robot_id: str, command: RobotCommand):
     for robot in robots:
         if robot["id"] == robot_id:
-            # Here you would implement the logic to send the command to the robot.
-            # For now, we'll just return a success message.
+
+            if command.command == "STOP":
+                robot["speed"] = 0.0
+                robot["status"] = "STOPPED"
+            elif command.command == "START":
+                robot["speed"] = 1.0
+                robot["status"] = "MOVING"
+            else:
+                raise HTTPException(status_code=400, detail="Invalid command")
+
             return {
                 "robot_id": robot_id,
                 "command": command.command,
