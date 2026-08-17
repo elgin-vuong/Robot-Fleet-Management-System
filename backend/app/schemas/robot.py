@@ -1,13 +1,14 @@
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
 
 class RobotResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
-    battery: float
-    temperature: float
-    x: float
-    y: float
-    speed: float
     status: str
+    battery: float
+    created_at: datetime
 
 class RobotCommand(BaseModel):
     command: str
