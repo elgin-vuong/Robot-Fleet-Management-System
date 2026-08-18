@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 from backend.app.main import app
+from backend.app.cache import redis_client
+from backend.app.routes.robots import ROBOTS_CACHE_KEY, _robot_cache_key
 
 client = TestClient(app)
 
@@ -88,4 +90,36 @@ def test_start_robot_valid_id():
         }
     )
     assert response.status_code == 200
+
+def test_get_robot_populates_cache():
+    redis_client.delete(_robot_cache_key("R004"))
+
+    client.get("/robots/R004")
+
+    assert redis_client.exists(_robot_cache_key("R004"))
+
+def test_get_robots_populates_list_cache():
+    redis_client.delete(ROBOTS_CACHE_KEY)
+
+    client.get("/robots")
+
+    assert redis_client.exists(ROBOTS_CACHE_KEY)
+
+def test_command_invalidates_cache():
+    client.get("/robots/R004")
+    client.get("/robots")
+
+    assert redis_client.exists(_robot_cache_key("R004"))
+    assert redis_client.exists(ROBOTS_CACHE_KEY)
+
+    response = client.post(
+        "/robots/R004/command",
+        json={
+            "command": "START"
+        }
+    )
+
+    assert response.status_code == 200
+    assert not redis_client.exists(_robot_cache_key("R004"))
+    assert not redis_client.exists(ROBOTS_CACHE_KEY)
 
