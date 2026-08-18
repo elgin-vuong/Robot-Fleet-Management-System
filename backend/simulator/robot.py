@@ -1,5 +1,5 @@
 class Robot:
-    def __init__(self, robot_id):
+    def __init__(self, robot_id, state=None):
         self.id = robot_id
         self.battery = 100.0
         self.temperature = 35.0
@@ -7,6 +7,14 @@ class Robot:
         self.y = 0.0
         self.speed = 0.0
         self.status = "IDLE"
+
+        if state is not None:
+            self.battery = state["battery"]
+            self.temperature = state["temperature"]
+            self.x = state["x"]
+            self.y = state["y"]
+            self.speed = state["speed"]
+            self.status = state["status"]
 
     def start(self):
         self.status = "MOVING"

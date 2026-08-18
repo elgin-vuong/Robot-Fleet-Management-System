@@ -2,9 +2,15 @@ from backend.simulator.robot import Robot
 
 
 class Fleet:
-    def __init__(self, count=5):
+    def __init__(self, count=5, saved_states=None):
+        """saved_states: optional dict of {robot_id: telemetry dict} used to
+        restore robots to their last-known state (e.g. loaded from Postgres)
+        instead of factory defaults.
+        """
+        saved_states = saved_states or {}
+
         self.robots = {
-            f"R{i:03}": Robot(f"R{i:03}")
+            f"R{i:03}": Robot(f"R{i:03}", state=saved_states.get(f"R{i:03}"))
             for i in range(1, count + 1)
         }
 
