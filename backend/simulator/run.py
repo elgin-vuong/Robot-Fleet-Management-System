@@ -1,19 +1,33 @@
+import random
 import time
 
 from backend.simulator.fleet import Fleet
 
+TICK_SECONDS = 1.0
+TICK_JITTER = 0.2
 
-fleet = Fleet(5)
 
-fleet.send_command("R001", "START")
+def main():
+    fleet = Fleet(5)
 
-while True:
-    for robot in fleet.robots.values():
-        robot.update()
+    # Kick things off with a bit of variety instead of every robot sitting idle.
+    fleet.send_command("R001", "START")
+    fleet.send_command("R002", "START")
+    fleet.send_command("R003", "CHARGE")
 
-    for robot in fleet.get_all_robots():
-        print(robot)
+    try:
+        while True:
+            fleet.update_all()
 
-    print("----------------")
+            for robot in fleet.get_all_robots():
+                print(robot)
 
-    time.sleep(1)
+            print("----------------")
+
+            time.sleep(TICK_SECONDS + random.uniform(-TICK_JITTER, TICK_JITTER))
+    except KeyboardInterrupt:
+        print("Simulator stopped.")
+
+
+if __name__ == "__main__":
+    main()
