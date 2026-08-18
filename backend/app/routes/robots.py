@@ -1,13 +1,16 @@
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from backend.app.cache import CACHE_TTL_SECONDS, redis_client
 from backend.app.database import SessionLocal, get_db
 from backend.app.models.command import Command
 from backend.app.models.robot import Robot
+from backend.app.models.telemetry import Telemetry
 from backend.app.schemas.robot import RobotResponse, RobotCommand
+from backend.app.schemas.telemetry import TelemetryResponse
 
 
 router = APIRouter(prefix="/robots", tags=["robots"])
@@ -70,6 +73,38 @@ def get_robot(robot_id: str, db: Session = Depends(get_db)):
     redis_client.set(cache_key, json.dumps(payload), ex=CACHE_TTL_SECONDS)
 
     return payload
+
+@router.get("/{robot_id}/telemetry", response_model=list[TelemetryResponse])
+def get_robot_telemetry(robot_id: str, limit: int = 50, db: Session = Depends(get_db)):
+    if db.get(Robot, robot_id) is None:
+        raise HTTPException(status_code=404, detail="Robot not found")
+
+    return (
+        db.query(Telemetry)
+        .filter(Telemetry.robot_id == robot_id)
+        .order_by(desc(Telemetry.timestamp))
+        .limit(limit)
+        .all()
+    )
+
+
+@router.get("/{robot_id}/telemetry/latest", response_model=TelemetryResponse)
+def get_robot_telemetry_latest(robot_id: str, db: Session = Depends(get_db)):
+    if db.get(Robot, robot_id) is None:
+        raise HTTPException(status_code=404, detail="Robot not found")
+
+    latest = (
+        db.query(Telemetry)
+        .filter(Telemetry.robot_id == robot_id)
+        .order_by(desc(Telemetry.timestamp))
+        .first()
+    )
+
+    if latest is None:
+        raise HTTPException(status_code=404, detail="No telemetry recorded for this robot")
+
+    return latest
+
 
 @router.post("/{robot_id}/command")
 def send_command(robot_id: str, command: RobotCommand, db: Session = Depends(get_db)):
