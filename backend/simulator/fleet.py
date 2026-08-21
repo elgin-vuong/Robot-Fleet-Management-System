@@ -1,19 +1,20 @@
 from backend.app.database import SessionLocal
+from backend.app.kafka import TELEMETRY_TOPIC, get_producer
 from backend.app.models.command import Command
 from backend.app.models.robot import Robot as RobotRecord
-from backend.app.models.telemetry import Telemetry
 from backend.simulator.robot import Robot
 
 VALID_COMMANDS = ("START", "STOP", "CHARGE", "RESET")
 
 
 class Fleet:
-    def __init__(self, count=5, persist=True):
+    def __init__(self, count=5, persist=True, publish=True):
         self.robots = {
             f"R{i:03}": Robot(f"R{i:03}")
             for i in range(1, count + 1)
         }
         self.persist = persist
+        self.publish = publish
 
         if self.persist:
             self._sync_robots_to_db()
@@ -57,9 +58,11 @@ class Fleet:
         for robot in self.robots.values():
             robot.update()
 
+            if self.publish:
+                self._publish_telemetry(robot)
+
             if self.persist:
                 self._save_robot(robot)
-                self._save_telemetry(robot)
 
     def _sync_robots_to_db(self):
         db = SessionLocal()
@@ -104,22 +107,6 @@ class Fleet:
         finally:
             db.close()
 
-    def _save_telemetry(self, robot):
-        db = SessionLocal()
-        try:
-            db.add(
-                Telemetry(
-                    robot_id=robot.id,
-                    battery=robot.battery,
-                    temperature=robot.temperature,
-                    x=robot.x,
-                    y=robot.y,
-                )
-            )
-            db.commit()
-        finally:
-            db.close()
-
     def _record_command(self, robot_id, command):
         db = SessionLocal()
         try:
@@ -127,3 +114,7 @@ class Fleet:
             db.commit()
         finally:
             db.close()
+
+    def _publish_telemetry(self, robot):
+        producer = get_producer()
+        producer.send(TELEMETRY_TOPIC, key=robot.id, value=robot.get_telemetry())
