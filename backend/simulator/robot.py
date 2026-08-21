@@ -1,8 +1,5 @@
 import random
 
-# Status values that represent a fault/failure condition. While a robot is in
-# one of these states it ignores normal movement/charging updates until it is
-# RESET.
 FAILURE_STATUSES = {
     "ERROR",
     "NETWORK_ERROR",
@@ -11,16 +8,12 @@ FAILURE_STATUSES = {
     "OFFLINE",
 }
 
-# Statuses derived automatically from battery/temperature thresholds rather
-# than set directly by a command.
 LOW_BATTERY_THRESHOLD = 20.0
 OFFLINE_BATTERY_THRESHOLD = 0.0
 OVERHEATING_THRESHOLD = 70.0
 
-# Chance (per update tick) that a moving robot suffers a random failure.
 FAILURE_PROBABILITY = 0.01
 
-# Bounds the robot is allowed to wander within.
 POSITION_MIN = -100.0
 POSITION_MAX = 100.0
 
@@ -74,15 +67,15 @@ class Robot:
         elif self.status == "CHARGING":
             self._charge_battery(1.0)
             self._cool(0.3)
-        elif self.status in ("IDLE", "STOPPED"):
+        elif self.status in ("IDLE", "STOPPED", "LOW_BATTERY"):
             self._drain_battery(0.01)
             self._cool(0.1)
+        elif self.status == "OVERHEATING":
+            self._cool(0.5)
 
         self._apply_thresholds()
 
     def _move(self):
-        # Small random 2D drift, roughly centered on the robot's speed, so
-        # motion looks organic instead of a straight line.
         self.x += self.speed + random.uniform(-0.5, 0.5)
         self.y += random.uniform(-0.5, 0.5)
 
@@ -120,6 +113,8 @@ class Robot:
         elif self.battery < LOW_BATTERY_THRESHOLD and self.status == "MOVING":
             self.status = "LOW_BATTERY"
             self.speed = 0.0
+        elif self.status in ("OVERHEATING", "LOW_BATTERY"):
+            self.status = "IDLE"
 
     def get_telemetry(self):
         return {
