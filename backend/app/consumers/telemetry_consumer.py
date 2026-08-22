@@ -2,6 +2,7 @@ import json
 
 from kafka import KafkaConsumer
 
+from backend.app.cache import TELEMETRY_CHANNEL, redis_client
 from backend.app.database import SessionLocal
 from backend.app.kafka import KAFKA_BOOTSTRAP_SERVERS, TELEMETRY_TOPIC
 from backend.app.models.robot import Robot  # noqa: F401 - registers the `robots` table for Telemetry's FK
@@ -41,6 +42,7 @@ def main():
     try:
         for message in consumer:
             _save(message.value)
+            redis_client.publish(TELEMETRY_CHANNEL, json.dumps(message.value))
             print(f"Persisted telemetry for {message.value['id']}")
     except KeyboardInterrupt:
         print("Telemetry consumer stopped.")
