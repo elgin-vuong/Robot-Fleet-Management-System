@@ -82,7 +82,7 @@ def get_robot_telemetry(robot_id: str, limit: int = 50, db: Session = Depends(ge
     return (
         db.query(Telemetry)
         .filter(Telemetry.robot_id == robot_id)
-        .order_by(desc(Telemetry.timestamp))
+        .order_by(desc(Telemetry.timestamp), desc(Telemetry.id))
         .limit(limit)
         .all()
     )
@@ -96,7 +96,7 @@ def get_robot_telemetry_latest(robot_id: str, db: Session = Depends(get_db)):
     latest = (
         db.query(Telemetry)
         .filter(Telemetry.robot_id == robot_id)
-        .order_by(desc(Telemetry.timestamp))
+        .order_by(desc(Telemetry.timestamp), desc(Telemetry.id))
         .first()
     )
 
