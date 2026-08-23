@@ -10,10 +10,9 @@ TICK_JITTER = 0.2
 def main():
     fleet = Fleet(5)
 
-    # Kick things off with a bit of variety instead of every robot sitting idle.
-    fleet.send_command("R001", "START")
-    fleet.send_command("R002", "START")
-    fleet.send_command("R003", "CHARGE")
+    # Kick things off with every robot moving instead of sitting idle.
+    for robot_id in fleet.robots:
+        fleet.send_command(robot_id, "START")
 
     try:
         while True:
