@@ -1,0 +1,89 @@
+.fleet-table {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.fleet-table--empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 520px;
+}
+
+thead th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--gridline);
+  white-space: nowrap;
+}
+
+thead th.num,
+td.num {
+  text-align: right;
+}
+
+tbody th,
+tbody td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--gridline);
+  font-size: 13px;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+tbody th {
+  text-align: left;
+  font-weight: 600;
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr {
+  cursor: pointer;
+}
+
+tbody tr:hover {
+  background: color-mix(in srgb, var(--series-1) 6%, transparent);
+}
+
+tbody tr.is-selected {
+  background: color-mix(in srgb, var(--series-1) 12%, transparent);
+  box-shadow: inset 3px 0 0 var(--series-1);
+}
+
+tbody tr:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: -2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+tr.is-stale {
+  opacity: 0.55;
+}
+
+.stale-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-warning);
+  margin-right: 6px;
+}
