@@ -45,7 +45,7 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app__header">
+      <header className="app_header">
         <h1>Robot Fleet Dashboard</h1>
       </header>
 

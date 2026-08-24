@@ -48,16 +48,16 @@ export function FleetSummary({ robots, connection, filter, onFilterChange }: Pro
         className={`stat-tile ${filter === 'all' ? 'stat-tile--active' : ''}`}
         onClick={() => onFilterChange('all')}
       >
-        <span className="stat-tile__label">Fleet</span>
-        <span className="stat-tile__value">{stats.total}</span>
+        <span className="stat-tile_label">Fleet</span>
+        <span className="stat-tile_value">{stats.total}</span>
       </button>
       <button
         type="button"
         className={`stat-tile ${filter === 'active' ? 'stat-tile--active' : ''}`}
         onClick={() => toggleFilter('active')}
       >
-        <span className="stat-tile__label">Active</span>
-        <span className="stat-tile__value" style={{ color: 'var(--status-good)' }}>
+        <span className="stat-tile_label">Active</span>
+        <span className="stat-tile_value" style={{ color: 'var(--status-good)' }}>
           {stats.active}
         </span>
       </button>
@@ -67,8 +67,8 @@ export function FleetSummary({ robots, connection, filter, onFilterChange }: Pro
         onClick={() => toggleFilter('attention')}
         disabled={stats.attention === 0}
       >
-        <span className="stat-tile__label">Needs attention</span>
-        <span className="stat-tile__value" style={{ color: stats.attention ? 'var(--status-warning)' : undefined }}>
+        <span className="stat-tile_label">Needs attention</span>
+        <span className="stat-tile_value" style={{ color: stats.attention ? 'var(--status-warning)' : undefined }}>
           {stats.attention}
         </span>
       </button>
@@ -78,19 +78,19 @@ export function FleetSummary({ robots, connection, filter, onFilterChange }: Pro
         onClick={() => toggleFilter('offline')}
         disabled={stats.offline === 0}
       >
-        <span className="stat-tile__label">Offline</span>
-        <span className="stat-tile__value" style={{ color: stats.offline ? 'var(--status-offline)' : undefined }}>
+        <span className="stat-tile_label">Offline</span>
+        <span className="stat-tile_value" style={{ color: stats.offline ? 'var(--status-offline)' : undefined }}>
           {stats.offline}
         </span>
       </button>
       <div className="stat-tile">
-        <span className="stat-tile__label">Avg battery</span>
-        <span className="stat-tile__value">{stats.avgBattery.toFixed(0)}%</span>
+        <span className="stat-tile_label">Avg battery</span>
+        <span className="stat-tile_value">{stats.avgBattery.toFixed(0)}%</span>
       </div>
       <div className="stat-tile stat-tile--connection">
-        <span className="stat-tile__label">Feed</span>
+        <span className="stat-tile_label">Feed</span>
         <span className={`connection-pill connection-pill--${connection}`}>
-          <span className="connection-pill__dot" aria-hidden="true" />
+          <span className="connection-pill_dot" aria-hidden="true" />
           {connection === 'open' ? 'Live' : connection === 'connecting' ? 'Connecting…' : 'Reconnecting…'}
         </span>
       </div>

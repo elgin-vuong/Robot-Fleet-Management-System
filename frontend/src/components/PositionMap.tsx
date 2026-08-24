@@ -77,7 +77,7 @@ export function PositionMap({ robots, now, selectedId, onSelect }: Props) {
       <div className="panel-header">
         <h2>Fleet position</h2>
       </div>
-      <div className="position-map__canvas" ref={containerRef}>
+      <div className="position-map_canvas" ref={containerRef}>
         <svg
           viewBox={`0 0 ${viewW} ${VIEW_H}`}
           preserveAspectRatio="none"
@@ -161,29 +161,29 @@ export function PositionMap({ robots, now, selectedId, onSelect }: Props) {
         </svg>
         {hoveredRobot && (
           <div
-            className="position-map__tooltip"
+            className="position-map_tooltip"
             style={{
               left: tooltipX,
               top: tooltipY,
               transform: tooltipTransform,
             }}
           >
-            <div className="position-map__tooltip-title" style={{ color: toneVar(toneForStatus(hoveredRobot.status)) }}>
+            <div className="position-map_tooltip-title" style={{ color: toneVar(toneForStatus(hoveredRobot.status)) }}>
               {hoveredRobot.id}
             </div>
-            <div className="position-map__tooltip-row">
+            <div className="position-map_tooltip-row">
               <span>Status</span>
               <span>{deriveStatus(hoveredRobot.status).state}{deriveStatus(hoveredRobot.status).issue ? ` (${deriveStatus(hoveredRobot.status).issue})` : ''}</span>
             </div>
-            <div className="position-map__tooltip-row">
+            <div className="position-map_tooltip-row">
               <span>Battery</span>
               <span>{hoveredRobot.battery != null ? `${Math.round(hoveredRobot.battery)}%` : '—'}</span>
             </div>
-            <div className="position-map__tooltip-row">
+            <div className="position-map_tooltip-row">
               <span>Temp</span>
               <span>{hoveredRobot.temperature != null ? `${hoveredRobot.temperature.toFixed(1)}°C` : '—'}</span>
             </div>
-            <div className="position-map__tooltip-row">
+            <div className="position-map_tooltip-row">
               <span>Speed</span>
               <span>{hoveredRobot.speed != null ? `${hoveredRobot.speed.toFixed(2)} m/s` : '—'}</span>
             </div>

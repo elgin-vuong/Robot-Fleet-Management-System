@@ -4,16 +4,16 @@
   padding: 28px 24px 60px;
 }
 
-.app__header {
+.app_header {
   margin-bottom: 20px;
 }
 
-.app__header h1 {
+.app_header h1 {
   font-size: 22px;
   margin: 0 0 4px;
 }
 
-.app__header p {
+.app_header p {
   margin: 0;
   color: var(--text-secondary);
   font-size: 13px;

@@ -34,7 +34,7 @@ function CommandButtons({ robot }: { robot: RobotLiveState }) {
     <div className="command-buttons">
       <button
         type="button"
-        className="command-buttons__btn"
+        className="command-buttons_btn"
         disabled={disabled || robot.status === 'MOVING' || pending !== null}
         onClick={() => run('START')}
         title={disabled ? 'Robot needs a reset before it can be commanded' : 'Start'}
@@ -43,7 +43,7 @@ function CommandButtons({ robot }: { robot: RobotLiveState }) {
       </button>
       <button
         type="button"
-        className="command-buttons__btn"
+        className="command-buttons_btn"
         disabled={disabled || robot.status === 'STOPPED' || pending !== null}
         onClick={() => run('STOP')}
         title={disabled ? 'Robot needs a reset before it can be commanded' : 'Stop'}
@@ -69,12 +69,12 @@ export function SelectedRobotPanel({ robot, now }: { robot: RobotLiveState | nul
 
   return (
     <div className="robot-panel">
-      <div className="robot-panel__header">
+      <div className="robot-panel_header">
         <h2>{robot.id}</h2>
         <HealthBadge health={health} />
       </div>
 
-      <dl className="robot-panel__facts">
+      <dl className="robot-panel_facts">
         <div>
           <dt>State</dt>
           <dd>{state}</dd>
@@ -107,17 +107,17 @@ export function SelectedRobotPanel({ robot, now }: { robot: RobotLiveState | nul
         </div>
       </dl>
 
-      <div className="robot-panel__charts">
-        <div className="robot-panel__chart">
-          <div className="robot-panel__chart-header">
+      <div className="robot-panel_charts">
+        <div className="robot-panel_chart">
+          <div className="robot-panel_chart-header">
             <h3>Battery history</h3>
             <span className="tabular">{robot.battery.toFixed(0)}%</span>
           </div>
           <Sparkline history={robot.history} field="battery" color="var(--series-1)" domain={[0, 100]} width={360} height={72} />
         </div>
 
-        <div className="robot-panel__chart">
-          <div className="robot-panel__chart-header">
+        <div className="robot-panel_chart">
+          <div className="robot-panel_chart-header">
             <h3>Temperature history</h3>
             <span className="tabular">{robot.temperature != null ? `${robot.temperature.toFixed(1)}°C` : '—'}</span>
           </div>
@@ -125,7 +125,7 @@ export function SelectedRobotPanel({ robot, now }: { robot: RobotLiveState | nul
         </div>
       </div>
 
-      <div className="robot-panel__commands">
+      <div className="robot-panel_commands">
         <h3>Commands</h3>
         <CommandButtons robot={robot} />
       </div>

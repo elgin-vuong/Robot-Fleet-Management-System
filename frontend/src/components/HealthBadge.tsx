@@ -18,7 +18,7 @@ const VAR: Record<Health, string> = {
 export function HealthBadge({ health }: { health: Health }) {
   return (
     <span className="status-badge" style={{ color: VAR[health] }}>
-      <span aria-hidden="true" className="status-badge__dot">
+      <span aria-hidden="true" className="status-badge_dot">
         ●
       </span>
       {LABEL[health]}

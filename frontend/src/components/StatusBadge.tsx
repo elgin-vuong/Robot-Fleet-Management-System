@@ -11,7 +11,7 @@ export function StatusBadge({ status }: { status: RobotStatus }) {
 
   return (
     <span className="status-badge" style={{ color }}>
-      <span aria-hidden="true" className="status-badge__dot">
+      <span aria-hidden="true" className="status-badge_dot">
         {DOT}
       </span>
       {label}

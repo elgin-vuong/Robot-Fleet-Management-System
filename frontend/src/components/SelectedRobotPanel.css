@@ -16,25 +16,25 @@
   min-height: 160px;
 }
 
-.robot-panel__header {
+.robot-panel_header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.robot-panel__header h2 {
+.robot-panel_header h2 {
   margin: 0;
   font-size: 18px;
 }
 
-.robot-panel__facts {
+.robot-panel_facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 14px;
   margin: 0;
 }
 
-.robot-panel__facts dt {
+.robot-panel_facts dt {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -42,49 +42,49 @@
   margin-bottom: 2px;
 }
 
-.robot-panel__facts dd {
+.robot-panel_facts dd {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.robot-panel__facts dd.is-stale {
+.robot-panel_facts dd.is-stale {
   color: var(--status-warning);
 }
 
-.robot-panel__charts {
+.robot-panel_charts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
 }
 
-.robot-panel__chart-header {
+.robot-panel_charts-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   margin-bottom: 6px;
 }
 
-.robot-panel__chart-header h3 {
+.robot-panel_chart-header h3 {
   margin: 0;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
-.robot-panel__chart-header span {
+.robot-panel_chart-header span {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.robot-panel__chart svg {
+.robot-panel_chart svg {
   width: 100%;
   display: block;
 }
 
-.robot-panel__commands h3 {
+.robot-panel_commands h3 {
   margin: 0 0 8px;
   font-size: 12px;
   font-weight: 600;
@@ -100,7 +100,7 @@
   gap: 8px;
 }
 
-.command-buttons__btn {
+.command-buttons_btn {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-primary);
@@ -111,12 +111,12 @@
   cursor: pointer;
 }
 
-.command-buttons__btn:hover:not(:disabled) {
+.command-buttons_btn:hover:not(:disabled) {
   border-color: var(--series-1);
   color: var(--series-1);
 }
 
-.command-buttons__btn:disabled {
+.command-buttons_btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
