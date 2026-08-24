@@ -33,11 +33,13 @@ function App() {
     })
   }, [robotList, filter])
 
-  // Keep selection valid; default to the first visible robot once data arrives.
   useEffect(() => {
-    if (selectedId && robotList.some((r) => r.id === selectedId)) return
-    setSelectedId(filteredList[0]?.id ?? robotList[0]?.id ?? null)
-  }, [robotList, filteredList, selectedId])
+    if (selectedId == null) return
+    if (robotList.some((r) => r.id === selectedId)) return
+    setSelectedId(null)
+  }, [robotList, selectedId])
+
+  const toggleSelect = (id: string) => setSelectedId((current) => (current === id ? null : id))
 
   const selectedRobot = selectedId ? (robots[selectedId] ?? null) : null
 
@@ -45,7 +47,6 @@ function App() {
     <div className="app">
       <header className="app__header">
         <h1>Robot Fleet Dashboard</h1>
-        <p>Live telemetry over WebSocket, backed by Kafka + Redis.</p>
       </header>
 
       <FleetSummary robots={robotList} connection={connection} filter={filter} onFilterChange={setFilter} />
@@ -54,7 +55,7 @@ function App() {
 
       <SelectedRobotPanel robot={selectedRobot} now={now} />
 
-      <PositionMap robots={robotList} now={now} selectedId={selectedId} onSelect={setSelectedId} />
+      <PositionMap robots={robotList} now={now} selectedId={selectedId} onSelect={toggleSelect} />
     </div>
   )
 }

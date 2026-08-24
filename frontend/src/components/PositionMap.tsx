@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RobotLiveState } from '../types'
-import { toneVar, toneForStatus, STALE_MS } from '../status'
+import { toneVar, toneForStatus, deriveStatus, STALE_MS } from '../status'
 import './PositionMap.css'
 
 const BOUND = 100
@@ -9,14 +9,8 @@ const DEFAULT_VIEW_W = 900
 const PAD = 24
 const Y_TICK_STEP = 20
 
-// Nice, round step sizes to snap the x-axis spacing to as the container resizes.
 const NICE_STEPS = [2, 4, 5, 10, 20, 25, 50]
 
-/**
- * Pick the x-axis tick step that makes grid cells read as squares in pixel
- * space: cell width (plotW / (span/xStep)) must equal cell height
- * (plotH / (span/yStep)), which reduces to xStep = yStep * (plotH / plotW).
- */
 function xTickStepFor(plotW: number, plotH: number) {
   const target = (Y_TICK_STEP * plotH) / plotW
   return NICE_STEPS.reduce((best, step) => (Math.abs(step - target) < Math.abs(best - target) ? step : best))
@@ -70,11 +64,18 @@ export function PositionMap({ robots, now, selectedId, onSelect }: Props) {
   const yTicks: number[] = []
   for (let t = -BOUND; t <= BOUND; t += Y_TICK_STEP) yTicks.push(t)
 
+  const hoveredRobot = robots.find((r) => r.id === hovered) ?? null
+  const tooltipX = hoveredRobot ? projectX(hoveredRobot.x) : 0
+  const tooltipY = hoveredRobot ? projectY(-hoveredRobot.y) : 0
+
+  const flipX = tooltipX > viewW - 140
+  const flipY = tooltipY < 100
+  const tooltipTransform = `translate(${flipX ? '-100%' : '0'}, ${flipY ? '12px' : 'calc(-100% - 12px)'})`
+
   return (
     <div className="position-map">
       <div className="panel-header">
         <h2>Fleet position</h2>
-        <span className="panel-header__hint">x / y from latest telemetry</span>
       </div>
       <div className="position-map__canvas" ref={containerRef}>
         <svg
@@ -153,21 +154,41 @@ export function PositionMap({ robots, now, selectedId, onSelect }: Props) {
                   stroke="var(--surface-1)"
                   strokeWidth={2}
                 />
-                <text
-                  x={cx}
-                  y={cy - (emphasized ? 14 : 12)}
-                  textAnchor="middle"
-                  fontSize={emphasized ? 13 : 11}
-                  fontWeight={isSelected ? 700 : 600}
-                  fill={isSelected ? toneVar(tone) : 'var(--text-secondary)'}
-                  opacity={stale ? 0.6 : 1}
-                >
-                  {r.id}
-                </text>
+                
               </g>
             )
           })}
         </svg>
+        {hoveredRobot && (
+          <div
+            className="position-map__tooltip"
+            style={{
+              left: tooltipX,
+              top: tooltipY,
+              transform: tooltipTransform,
+            }}
+          >
+            <div className="position-map__tooltip-title" style={{ color: toneVar(toneForStatus(hoveredRobot.status)) }}>
+              {hoveredRobot.id}
+            </div>
+            <div className="position-map__tooltip-row">
+              <span>Status</span>
+              <span>{deriveStatus(hoveredRobot.status).state}{deriveStatus(hoveredRobot.status).issue ? ` (${deriveStatus(hoveredRobot.status).issue})` : ''}</span>
+            </div>
+            <div className="position-map__tooltip-row">
+              <span>Battery</span>
+              <span>{hoveredRobot.battery != null ? `${Math.round(hoveredRobot.battery)}%` : '—'}</span>
+            </div>
+            <div className="position-map__tooltip-row">
+              <span>Temp</span>
+              <span>{hoveredRobot.temperature != null ? `${hoveredRobot.temperature.toFixed(1)}°C` : '—'}</span>
+            </div>
+            <div className="position-map__tooltip-row">
+              <span>Speed</span>
+              <span>{hoveredRobot.speed != null ? `${hoveredRobot.speed.toFixed(2)} m/s` : '—'}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

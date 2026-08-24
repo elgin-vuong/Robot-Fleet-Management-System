@@ -58,7 +58,7 @@ export function SelectedRobotPanel({ robot, now }: { robot: RobotLiveState | nul
   if (!robot) {
     return (
       <div className="robot-panel robot-panel--empty">
-        <p>Select a robot from the table or map to see its detail.</p>
+        <p style={{ fontSize: '14px' }}>Select a robot from the table or map to see its performance.</p>
       </div>
     )
   }
