@@ -90,20 +90,22 @@ function reducer(state: FleetState, action: Action): FleetState {
   }
 }
 
-export function useFleet() {
+export function useFleet(token: string | null) {
   const [state, dispatch] = useReducer(reducer, { robots: {}, order: [], connection: 'connecting' })
   const wsRef = useRef<WebSocket | null>(null)
   const retryRef = useRef(RECONNECT_BASE_MS)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const seed = useCallback(async () => {
+    if (!token) return
+
     try {
-      const robots = await fetchRobots()
+      const robots = await fetchRobots(token)
       const seeded = await Promise.all(
         robots.map(async (r): Promise<RobotLiveState> => {
           let history: TelemetrySample[] = []
           try {
-            const records = await fetchRobotTelemetry(r.id, HISTORY_LIMIT)
+            const records = await fetchRobotTelemetry(r.id, token, HISTORY_LIMIT)
             history = records
               .slice()
               .reverse()
@@ -137,13 +139,15 @@ export function useFleet() {
     } catch (err) {
       console.error('Failed to seed fleet from REST API', err)
     }
-  }, [])
+  }, [token])
 
   useEffect(() => {
     seed()
   }, [seed])
 
   useEffect(() => {
+    if (!token) return
+
     let cancelled = false
 
     const connect = () => {
@@ -151,7 +155,7 @@ export function useFleet() {
       dispatch({ type: 'connection', status: 'connecting' })
 
       const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const ws = new WebSocket(`${proto}//${window.location.host}/ws/robots`)
+      const ws = new WebSocket(`${proto}//${window.location.host}/ws/robots?token=${encodeURIComponent(token)}`)
       wsRef.current = ws
 
       ws.onopen = () => {
@@ -189,7 +193,7 @@ export function useFleet() {
       if (timerRef.current) clearTimeout(timerRef.current)
       wsRef.current?.close()
     }
-  }, [])
+  }, [token])
 
   return state
 }

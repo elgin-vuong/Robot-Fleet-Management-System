@@ -71,3 +71,11 @@ export interface RobotLiveState {
 }
 
 export type WSMessage = { type: 'telemetry'; robot: TelemetryEvent }
+
+export type Role = 'viewer' | 'operator' | 'admin'
+
+export interface AuthUser {
+  id: number
+  username: string
+  role: Role
+}

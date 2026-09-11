@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import type { RobotLiveState } from '../types'
 import { toneForStatus } from '../status'
 import type { ConnectionStatus } from '../useFleet'
-import type { FleetFilter } from '../App'
+import type { FleetFilter } from '../Dashboard'
 import './FleetSummary.css'
 
 interface Props {
