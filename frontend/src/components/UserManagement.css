@@ -1,0 +1,74 @@
+.user-management {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.user-management h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.user-management_table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.user-management_table th {
+  text-align: left;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 8px 8px 0;
+}
+
+.user-management_table td {
+  padding: 6px 8px 6px 0;
+  border-top: 1px solid var(--gridline);
+}
+
+.user-management_form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.user-management_form input,
+.user-management_form select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--page);
+  color: var(--text-primary);
+}
+
+.user-management_form button {
+  border: 1px solid var(--border);
+  background: var(--series-1);
+  color: white;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.user-management_form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.user-management_error {
+  margin: 0;
+  color: var(--status-critical);
+  font-size: 13px;
+}

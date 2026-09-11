@@ -2,6 +2,7 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from backend.app.routes.auth import router as auth_router
 from backend.app.routes.robots import router as robots_router
 from backend.app.routes.websocket import router as websocket_router
 from backend.app.websocket.redis_bridge import listen_for_telemetry
@@ -20,5 +21,6 @@ app = FastAPI(title="Robot Fleet Management API", lifespan=lifespan)
 def health_check():
     return {"status": "ok"}
 
+app.include_router(auth_router)
 app.include_router(robots_router)
 app.include_router(websocket_router)

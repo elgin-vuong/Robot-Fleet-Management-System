@@ -5,6 +5,7 @@ import { STALE_MS, deriveStatus, toneVar, toneForStatus } from '../status'
 import { HealthBadge } from './HealthBadge'
 import { Sparkline } from './Sparkline'
 import { sendCommand } from '../api'
+import { useAuth } from '../AuthContext'
 import './SelectedRobotPanel.css'
 
 function timeAgo(ts: number | null, now: number): string {
@@ -16,13 +17,16 @@ function timeAgo(ts: number | null, now: number): string {
 }
 
 function CommandButtons({ robot }: { robot: RobotLiveState }) {
+  const { token } = useAuth()
   const [pending, setPending] = useState<'START' | 'STOP' | null>(null)
   const disabled = FAILURE_STATUSES.has(robot.status)
 
   const run = async (command: 'START' | 'STOP') => {
+    if (!token) return
+
     setPending(command)
     try {
-      await sendCommand(robot.id, command)
+      await sendCommand(robot.id, command, token)
     } catch (err) {
       console.error(err)
     } finally {
@@ -55,6 +59,9 @@ function CommandButtons({ robot }: { robot: RobotLiveState }) {
 }
 
 export function SelectedRobotPanel({ robot, now }: { robot: RobotLiveState | null; now: number }) {
+  const { user } = useAuth()
+  const canCommand = user?.role === 'operator' || user?.role === 'admin'
+
   if (!robot) {
     return (
       <div className="robot-panel robot-panel--empty">
@@ -125,10 +132,12 @@ export function SelectedRobotPanel({ robot, now }: { robot: RobotLiveState | nul
         </div>
       </div>
 
-      <div className="robot-panel_commands">
-        <h3>Commands</h3>
-        <CommandButtons robot={robot} />
-      </div>
+      {canCommand && (
+        <div className="robot-panel_commands">
+          <h3>Commands</h3>
+          <CommandButtons robot={robot} />
+        </div>
+      )}
     </div>
   )
 }

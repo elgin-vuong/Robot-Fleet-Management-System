@@ -19,9 +19,49 @@
   font-size: 13px;
 }
 
+.app_header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.app_user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app_user-info {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.app_user-role {
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.app_logout {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app_logout:hover {
+  border-color: var(--status-critical);
+  color: var(--status-critical);
+}
+
 .app > .fleet-table,
 .app > .robot-panel,
-.app > .position-map {
+.app > .position-map,
+.app > .user-management {
   width: 100%;
   margin-bottom: 20px;
 }

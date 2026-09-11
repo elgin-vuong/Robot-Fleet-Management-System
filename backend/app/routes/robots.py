@@ -4,11 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from backend.app.auth import ROLE_ADMIN, ROLE_OPERATOR, get_current_user, require_role
 from backend.app.cache import CACHE_TTL_SECONDS, redis_client
 from backend.app.database import SessionLocal, get_db
 from backend.app.models.command import Command
 from backend.app.models.robot import Robot
 from backend.app.models.telemetry import Telemetry
+from backend.app.models.user import User
 from backend.app.schemas.robot import RobotResponse, RobotCommand
 from backend.app.schemas.telemetry import TelemetryResponse
 
@@ -42,7 +44,7 @@ _seed_robots()
 
 
 @router.get("", response_model=list[RobotResponse])
-def get_robots(db: Session = Depends(get_db)):
+def get_robots(db: Session = Depends(get_db), _user: User = Depends(get_current_user)):
     cached = redis_client.get(ROBOTS_CACHE_KEY)
 
     if cached is not None:
@@ -57,7 +59,7 @@ def get_robots(db: Session = Depends(get_db)):
 
 
 @router.get("/{robot_id}", response_model=RobotResponse)
-def get_robot(robot_id: str, db: Session = Depends(get_db)):
+def get_robot(robot_id: str, db: Session = Depends(get_db), _user: User = Depends(get_current_user)):
     cache_key = _robot_cache_key(robot_id)
     cached = redis_client.get(cache_key)
 
@@ -75,7 +77,12 @@ def get_robot(robot_id: str, db: Session = Depends(get_db)):
     return payload
 
 @router.get("/{robot_id}/telemetry", response_model=list[TelemetryResponse])
-def get_robot_telemetry(robot_id: str, limit: int = 50, db: Session = Depends(get_db)):
+def get_robot_telemetry(
+    robot_id: str,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
     if db.get(Robot, robot_id) is None:
         raise HTTPException(status_code=404, detail="Robot not found")
 
@@ -89,7 +96,9 @@ def get_robot_telemetry(robot_id: str, limit: int = 50, db: Session = Depends(ge
 
 
 @router.get("/{robot_id}/telemetry/latest", response_model=TelemetryResponse)
-def get_robot_telemetry_latest(robot_id: str, db: Session = Depends(get_db)):
+def get_robot_telemetry_latest(
+    robot_id: str, db: Session = Depends(get_db), _user: User = Depends(get_current_user)
+):
     if db.get(Robot, robot_id) is None:
         raise HTTPException(status_code=404, detail="Robot not found")
 
@@ -107,7 +116,12 @@ def get_robot_telemetry_latest(robot_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{robot_id}/command")
-def send_command(robot_id: str, command: RobotCommand, db: Session = Depends(get_db)):
+def send_command(
+    robot_id: str,
+    command: RobotCommand,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_role(ROLE_OPERATOR, ROLE_ADMIN)),
+):
     robot = db.get(Robot, robot_id)
 
     if robot is None or command.command not in COMMAND_STATUS:
