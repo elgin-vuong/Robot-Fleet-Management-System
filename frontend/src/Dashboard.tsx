@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useFleet } from './useFleet'
 import { useAuth } from './AuthContext'
+import { AgentChat } from './components/AgentChat'
 import { FleetSummary } from './components/FleetSummary'
 import { FleetTable } from './components/FleetTable'
 import { PositionMap } from './components/PositionMap'
@@ -69,6 +70,8 @@ function Dashboard() {
       <SelectedRobotPanel robot={selectedRobot} now={now} />
 
       <PositionMap robots={robotList} now={now} selectedId={selectedId} onSelect={toggleSelect} />
+
+      <AgentChat />
 
       {user?.role === 'admin' && <UserManagement />}
     </div>

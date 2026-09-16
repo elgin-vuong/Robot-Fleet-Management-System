@@ -61,6 +61,7 @@
 .app > .fleet-table,
 .app > .robot-panel,
 .app > .position-map,
+.app > .agent-chat,
 .app > .user-management {
   width: 100%;
   margin-bottom: 20px;

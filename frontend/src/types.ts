@@ -79,3 +79,23 @@ export interface AuthUser {
   username: string
   role: Role
 }
+
+export interface AgentToolCall {
+  tool: string
+  status: 'success' | 'error'
+  detail: string | null
+}
+
+export interface AgentChatResponse {
+  response: string
+  tool_calls: AgentToolCall[]
+  requires_confirmation: boolean
+  confirmation_id: string | null
+}
+
+export interface AgentConfirmResponse {
+  response: string
+  success: boolean
+  robot_id: string | null
+  command: string | null
+}

@@ -8,6 +8,7 @@ export default defineConfig({
     proxy: {
       '/robots': 'http://localhost:8000',
       '/auth': 'http://localhost:8000',
+      '/agent': 'http://localhost:8000',
       '/ws': {
         target: 'ws://localhost:8000',
         ws: true,
