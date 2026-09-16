@@ -115,6 +115,32 @@ def get_robot_telemetry_latest(
     return latest
 
 
+def execute_robot_command(db: Session, robot_id: str, command: str) -> Robot:
+    """Validate and apply a command to a robot.
+
+    This is the one place that knows how commands are validated and applied
+    to a robot's persisted state. Both the HTTP endpoint below and the AI
+    agent's write tool (backend/app/agent/tools.py) call this function
+    directly, so there is exactly one command implementation rather than
+    two copies that could drift apart.
+
+    Raises ValueError if the robot doesn't exist or the command isn't one
+    of the currently-supported values in COMMAND_STATUS.
+    """
+    robot = db.get(Robot, robot_id)
+
+    if robot is None or command not in COMMAND_STATUS:
+        raise ValueError("Invalid command or robot")
+
+    robot.status = COMMAND_STATUS[command]
+    db.add(Command(robot_id=robot_id, command=command))
+    db.commit()
+
+    redis_client.delete(ROBOTS_CACHE_KEY, _robot_cache_key(robot_id))
+
+    return robot
+
+
 @router.post("/{robot_id}/command")
 def send_command(
     robot_id: str,
@@ -122,16 +148,10 @@ def send_command(
     db: Session = Depends(get_db),
     _user: User = Depends(require_role(ROLE_OPERATOR, ROLE_ADMIN)),
 ):
-    robot = db.get(Robot, robot_id)
-
-    if robot is None or command.command not in COMMAND_STATUS:
+    try:
+        execute_robot_command(db, robot_id, command.command)
+    except ValueError:
         raise HTTPException(status_code=404, detail="Invalid command or robot")
-
-    robot.status = COMMAND_STATUS[command.command]
-    db.add(Command(robot_id=robot_id, command=command.command))
-    db.commit()
-
-    redis_client.delete(ROBOTS_CACHE_KEY, _robot_cache_key(robot_id))
 
     return {
         "robot_id": robot_id,
