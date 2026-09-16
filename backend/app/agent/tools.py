@@ -19,13 +19,20 @@ import logging
 from dataclasses import dataclass
 from typing import Callable, Literal
 
-from sqlalchemy import desc
+from sqlalchemy import desc, text
 from sqlalchemy.orm import Session
 
-from backend.app.agent.exceptions import RobotNotFoundError, ToolNotFoundError, ToolValidationError
+from backend.app.agent.exceptions import (
+    EmbeddingProviderError,
+    RobotNotFoundError,
+    ToolNotFoundError,
+    ToolValidationError,
+)
 from backend.app.agent.schemas import (
+    DocumentSearchHit,
     FleetSummaryResult,
     IncidentsResult,
+    IncidentSummary,
     LimitedRobotArgs,
     MAX_LIMIT,
     RecentTelemetryResult,
@@ -33,15 +40,21 @@ from backend.app.agent.schemas import (
     RobotLogEntry,
     RobotLogsResult,
     RobotStatusResult,
+    SearchDocumentsArgs,
+    SearchDocumentsResult,
     SendCommandResult,
     SendRobotCommandArgs,
     TelemetryReading,
 )
 from backend.app.cache import redis_client
 from backend.app.models.command import Command
+from backend.app.models.document import Document
+from backend.app.models.document_chunk import DocumentChunk
+from backend.app.models.incident import Incident
 from backend.app.models.robot import Robot
 from backend.app.models.telemetry import Telemetry
 from backend.app.models.user import User
+from backend.app.routes.documents import get_embeddings_client
 from backend.app.routes.robots import COMMAND_STATUS, _robot_cache_key, execute_robot_command
 
 logger = logging.getLogger("backend.app.agent")
@@ -184,21 +197,28 @@ def get_recent_telemetry(ctx: ToolContext, robot_id: str, limit: int = 20) -> Re
 
 
 def get_recent_incidents(ctx: ToolContext, robot_id: str, limit: int = 10) -> IncidentsResult:
-    """Stub: this codebase has no Incident model yet.
+    """Recent incidents recorded for a robot (backend.app.models.incident.Incident).
 
-    Kept as a real tool (rather than omitted) so the calling contract is
-    stable — a future incident-tracking feature can fill this in without
-    changing the agent orchestration, the LLM-facing schema, or any caller.
+    Incidents are created via POST /incidents (backend/app/routes/incidents.py),
+    outside the agent — this is a read-only view onto that data, same pattern
+    as get_robot_logs.
     """
     args = LimitedRobotArgs(robot_id=robot_id, limit=limit)
 
     if ctx.db.get(Robot, args.robot_id) is None:
         raise RobotNotFoundError(args.robot_id)
 
+    rows = (
+        ctx.db.query(Incident)
+        .filter(Incident.robot_id == args.robot_id)
+        .order_by(desc(Incident.created_at), desc(Incident.id))
+        .limit(args.limit)
+        .all()
+    )
+
     return IncidentsResult(
         robot_id=args.robot_id,
-        incidents=[],
-        note="Incident tracking is not implemented in this system yet.",
+        incidents=[IncidentSummary.model_validate(r) for r in rows],
     )
 
 
@@ -222,6 +242,52 @@ def get_robot_logs(ctx: ToolContext, robot_id: str, limit: int = 20) -> RobotLog
     return RobotLogsResult(
         robot_id=args.robot_id,
         logs=[RobotLogEntry(command=r.command, created_at=r.created_at) for r in rows],
+    )
+
+
+def search_documents(ctx: ToolContext, query: str, limit: int = 5) -> SearchDocumentsResult:
+    """Semantic search over the ops knowledge base (manuals, runbooks,
+    troubleshooting docs uploaded via POST /documents). Embeds the query
+    with the same provider used at ingestion time and ranks chunks by
+    cosine similarity.
+    """
+    args = SearchDocumentsArgs(query=query, limit=limit)
+
+    try:
+        query_vector = get_embeddings_client().embed([args.query], input_type="query")[0]
+    except EmbeddingProviderError as exc:
+        raise ToolValidationError(f"Semantic search is unavailable: {exc}") from exc
+
+    # ivfflat's default probes=1 only checks the single nearest list centroid,
+    # which on a table with few chunks relative to `lists` (see the
+    # create_document_chunks_table migration) can miss rows entirely rather
+    # than merely reduce recall. SET LOCAL scopes this to the current
+    # transaction only, so it doesn't leak into any other query on this
+    # session/connection.
+    ctx.db.execute(text("SET LOCAL ivfflat.probes = 10"))
+
+    distance = DocumentChunk.embedding.cosine_distance(query_vector).label("distance")
+    rows = (
+        ctx.db.query(DocumentChunk, Document, distance)
+        .join(Document, DocumentChunk.document_id == Document.id)
+        .order_by(distance)
+        .limit(args.limit)
+        .all()
+    )
+
+    return SearchDocumentsResult(
+        query=args.query,
+        results=[
+            DocumentSearchHit(
+                document_id=document.id,
+                document_title=document.title,
+                source=document.source,
+                chunk_text=chunk.chunk_text,
+                chunk_index=chunk.chunk_index,
+                similarity=1 - dist,
+            )
+            for chunk, document, dist in rows
+        ],
     )
 
 
@@ -314,7 +380,7 @@ TOOLS: dict[str, ToolSpec] = {
         name="get_recent_incidents",
         classification="read",
         func=get_recent_incidents,
-        description="Get recent incidents recorded for one robot, if incident tracking is available.",
+        description="Get recent incidents recorded for one robot: title, severity, status, and when reported/resolved.",
         input_schema={
             "type": "object",
             "properties": {
@@ -336,6 +402,24 @@ TOOLS: dict[str, ToolSpec] = {
                 "limit": {"type": "integer", "minimum": 1, "maximum": MAX_LIMIT, "default": 20},
             },
             "required": ["robot_id"],
+        },
+    ),
+    "search_documents": ToolSpec(
+        name="search_documents",
+        classification="read",
+        func=search_documents,
+        description=(
+            "Search the ops knowledge base (manuals, runbooks, troubleshooting docs) for content "
+            "relevant to a question. Returns the most relevant excerpts, each with a similarity "
+            "score (0-1, higher is more relevant) and its source document title for citation."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Natural-language question or topic to search for"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": MAX_LIMIT, "default": 5},
+            },
+            "required": ["query"],
         },
     ),
     "send_robot_command": ToolSpec(

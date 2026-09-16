@@ -14,6 +14,9 @@ from backend.app.models.robot import Robot  # noqa: F401
 from backend.app.models.telemetry import Telemetry  # noqa: F401
 from backend.app.models.command import Command  # noqa: F401
 from backend.app.models.user import User  # noqa: F401
+from backend.app.models.incident import Incident  # noqa: F401
+from backend.app.models.document import Document  # noqa: F401
+from backend.app.models.document_chunk import DocumentChunk  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

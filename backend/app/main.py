@@ -13,6 +13,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from backend.app.routes.agent import router as agent_router
 from backend.app.routes.auth import router as auth_router
+from backend.app.routes.documents import router as documents_router
+from backend.app.routes.incidents import router as incidents_router
 from backend.app.routes.robots import router as robots_router
 from backend.app.routes.websocket import router as websocket_router
 from backend.app.websocket.redis_bridge import listen_for_telemetry
@@ -33,5 +35,7 @@ def health_check():
 
 app.include_router(agent_router)
 app.include_router(auth_router)
+app.include_router(documents_router)
+app.include_router(incidents_router)
 app.include_router(robots_router)
 app.include_router(websocket_router)
