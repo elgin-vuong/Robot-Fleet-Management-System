@@ -16,6 +16,8 @@ def _clear_telemetry(robot_id):
 
 
 def test_publish_telemetry_lands_on_topic():
+    test_key = "TEST-KAFKA-PUBLISH"
+
     consumer = KafkaConsumer(
         TELEMETRY_TOPIC,
         bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
@@ -24,29 +26,31 @@ def test_publish_telemetry_lands_on_topic():
         auto_offset_reset="latest",
         consumer_timeout_ms=5000,
     )
-    
+
     consumer.poll(timeout_ms=1000)
 
     producer = get_producer()
     payload = {
-        "id": "R001",
+        "id": test_key,
         "battery": 42.0,
         "temperature": 55.5,
         "x": 1.0,
         "y": -2.0,
     }
-    producer.send(TELEMETRY_TOPIC, key="R001", value=payload)
+    producer.send(TELEMETRY_TOPIC, key=test_key, value=payload)
     producer.flush()
 
+    message = None
     try:
-        message = next(iter(consumer))
-    except StopIteration:
-        message = None
+        for candidate in consumer:
+            if candidate.key == test_key.encode():
+                message = candidate
+                break
     finally:
         consumer.close()
 
     assert message is not None
-    assert message.key == b"R001"
+    assert message.key == test_key.encode()
 
 
 def test_consumer_save_persists_telemetry_event():
