@@ -12,6 +12,17 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 
 COPY backend/ backend/
 
+# backend/app/database.py etc. import as `backend.app...` — this matches
+# how the app is already run locally (`python -m backend.app.main`,
+# `python -m backend.simulator.run`), so no import-path changes needed.
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1
+
+EXPOSE 8000
+
+# Default command runs the API. Worker task definitions override this
+# with ["python", "-m", "backend.app.consumers.telemetry_consumer"] or
+# ["python", "-m", "backend.simulator.run"].
 RUN chown -R app:app /app
 USER app
 

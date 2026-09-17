@@ -1,0 +1,28 @@
+# Copy to terraform.tfvars (gitignored) for ad-hoc local overrides, or use
+# -var-file=environments/<env>.tfvars for a named environment. Every
+# variable here has a working default in variables.tf — this file only
+# needs to list what you actually want to change.
+
+project_name = "robot-fleet"
+environment  = "dev"
+aws_region   = "us-east-1"
+
+# Required before wiring up GitHub Actions deployment (see iam.tf) — has no
+# safe default since it's specific to your fork/repo.
+github_repository = "your-org/Robot-Fleet-Management-System"
+
+# Set to your account's Anthropic/Voyage billing tolerance in mind; these
+# are the images ECS pulls — see README "ECR image workflow" for how they
+# get built and pushed before the first apply can succeed.
+backend_image_tag  = "latest"
+frontend_image_tag = "latest"
+
+# Leave enable_kafka = false (the default) unless you specifically need a
+# persistent MSK cluster — see README "Kafka / event streaming" for cost.
+enable_kafka = false
+
+# Leave empty to skip Route53/ACM and use the ALB's own DNS name over HTTP.
+domain_name = ""
+
+# Leave empty to skip the SNS email subscription for CloudWatch alarms.
+alarm_email = ""

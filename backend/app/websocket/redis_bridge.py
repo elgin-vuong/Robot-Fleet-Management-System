@@ -2,12 +2,12 @@ import json
 
 import redis.asyncio as redis_async
 
-from backend.app.cache import CACHE_HOST, CACHE_PORT, TELEMETRY_CHANNEL
+from backend.app.cache import REDIS_URL, TELEMETRY_CHANNEL
 from backend.app.websocket.manager import manager
 
 
 async def listen_for_telemetry():
-    client = redis_async.Redis(host=CACHE_HOST, port=CACHE_PORT, decode_responses=True)
+    client = redis_async.Redis.from_url(REDIS_URL, decode_responses=True)
     pubsub = client.pubsub()
     await pubsub.subscribe(TELEMETRY_CHANNEL)
 

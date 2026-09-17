@@ -28,3 +28,18 @@ node_modules/
 # Build artifacts
 dist/
 build/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+# terraform.tfvars often carries per-developer overrides; committed
+# templates (terraform.tfvars.example, environments/*.tfvars) are exempt.
+terraform.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

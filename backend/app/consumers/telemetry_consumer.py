@@ -4,7 +4,7 @@ from kafka import KafkaConsumer
 
 from backend.app.cache import TELEMETRY_CHANNEL, redis_client
 from backend.app.database import SessionLocal
-from backend.app.kafka import KAFKA_BOOTSTRAP_SERVERS, TELEMETRY_TOPIC
+from backend.app.kafka import KAFKA_BOOTSTRAP_SERVERS, KAFKA_SECURITY_PROTOCOL, TELEMETRY_TOPIC
 from backend.app.models.robot import Robot  # noqa: F401 - registers the `robots` table for Telemetry's FK
 from backend.app.models.telemetry import Telemetry
 
@@ -32,6 +32,7 @@ def main():
     consumer = KafkaConsumer(
         TELEMETRY_TOPIC,
         bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+        security_protocol=KAFKA_SECURITY_PROTOCOL,
         group_id=CONSUMER_GROUP,
         value_deserializer=lambda v: json.loads(v.decode("utf-8")),
         auto_offset_reset="earliest",
