@@ -1,0 +1,28 @@
+# Optional / demo-only: generates fake robot telemetry onto Kafka so the
+# dashboard has data to show without a real fleet connected. Skip applying
+# this file in any environment where real robots publish telemetry.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simulator
+  namespace: robot-fleet
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simulator
+  template:
+    metadata:
+      labels:
+        app: simulator
+    spec:
+      containers:
+        - name: simulator
+          image: robot-fleet-backend:local
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "backend.simulator.run"]
+          envFrom:
+            - configMapRef:
+                name: robot-fleet-config
+            - secretRef:
+                name: robot-fleet-secrets
