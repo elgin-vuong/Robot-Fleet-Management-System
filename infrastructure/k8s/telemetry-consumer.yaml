@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemetry-consumer
+  namespace: robot-fleet
+spec:
+  # Single replica: Kafka consumer-group semantics mean extra replicas need
+  # partition planning to actually parallelize work, which this topic
+  # doesn't have yet.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telemetry-consumer
+  template:
+    metadata:
+      labels:
+        app: telemetry-consumer
+    spec:
+      containers:
+        - name: telemetry-consumer
+          image: robot-fleet-backend:local
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "backend.app.consumers.telemetry_consumer"]
+          envFrom:
+            - configMapRef:
+                name: robot-fleet-config
+            - secretRef:
+                name: robot-fleet-secrets
+          # No HTTP port to probe; rely on the container's exit status /
+          # Deployment's restart behavior for liveness.
