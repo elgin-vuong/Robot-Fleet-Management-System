@@ -1,0 +1,49 @@
+# Runs the real backend test suite against real Postgres/Redis/Kafka using
+# the repo's own docker-compose.yml — no mocked infrastructure, matching
+# local development exactly. No AWS credentials involved.
+name: Backend tests
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "docker-compose.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "docker-compose.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Start Postgres, Redis, Kafka
+        run: docker compose up -d
+
+      - name: Wait for Postgres to accept connections
+        run: |
+          for i in $(seq 1 30); do
+            docker exec robot-fleet-postgres pg_isready -U fleet_user -d robot_fleet && break
+            sleep 2
+          done
+
+      - name: Run Alembic migrations
+        run: python -m alembic upgrade head
+        working-directory: backend
+
+      - name: Run tests
+        run: python -m pytest backend/tests/ -v
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose logs

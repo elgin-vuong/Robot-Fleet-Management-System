@@ -1,0 +1,19 @@
+# Keeps the Docker build context small and out of unrelated code — both
+# backend/Dockerfile and frontend/Dockerfile build from the repo root.
+.git/
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+frontend/node_modules/
+frontend/dist/
+
+infrastructure/terraform/.terraform/
+infrastructure/terraform/*.tfstate*
+
+.env
+.env.*
+!.env.example
