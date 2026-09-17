@@ -109,10 +109,39 @@ class RecentTelemetryResult(BaseModel):
     readings: list[TelemetryReading]
 
 
+class IncidentSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    severity: str
+    status: str
+    created_at: datetime
+    resolved_at: datetime | None
+
+
 class IncidentsResult(BaseModel):
     robot_id: str
-    incidents: list[dict] = Field(default_factory=list)
-    note: str
+    incidents: list[IncidentSummary]
+
+
+class SearchDocumentsArgs(BaseModel):
+    query: str = Field(min_length=1, max_length=1000)
+    limit: int = Field(default=5, ge=1, le=MAX_LIMIT)
+
+
+class DocumentSearchHit(BaseModel):
+    document_id: int
+    document_title: str
+    source: str | None
+    chunk_text: str
+    chunk_index: int
+    similarity: float
+
+
+class SearchDocumentsResult(BaseModel):
+    query: str
+    results: list[DocumentSearchHit]
 
 
 class RobotLogEntry(BaseModel):

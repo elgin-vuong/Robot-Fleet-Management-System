@@ -49,3 +49,7 @@ class MaxToolCallsExceededError(AgentError):
 
 class LLMProviderError(AgentError):
     """The underlying LLM provider failed, timed out, or is not configured."""
+
+
+class EmbeddingProviderError(AgentError):
+    """The underlying embeddings provider failed, timed out, or is not configured."""
