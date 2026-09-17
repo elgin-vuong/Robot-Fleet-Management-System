@@ -1,0 +1,24 @@
+# Re-run on every deploy with:
+#   kubectl delete job/migrate -n robot-fleet --ignore-not-found
+#   kubectl apply -f migrate-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  namespace: robot-fleet
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: robot-fleet-backend:local
+          imagePullPolicy: IfNotPresent
+          command: ["alembic", "-c", "backend/alembic.ini", "upgrade", "head"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: robot-fleet-secrets
+                  key: DATABASE_URL

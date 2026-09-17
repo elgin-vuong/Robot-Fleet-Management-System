@@ -8,6 +8,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+infrastructure/k8s/secret.yaml
 
 # macOS
 .DS_Store

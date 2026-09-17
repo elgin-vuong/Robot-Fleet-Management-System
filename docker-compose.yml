@@ -34,15 +34,19 @@ services:
     container_name: robot-fleet-kafka
     restart: unless-stopped
     ports:
-      - "9092:9092"
+      - "9092:9094"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      # Two listeners: PLAINTEXT for other containers (advertised as the
+      # "kafka" service name), PLAINTEXT_HOST for processes running
+      # directly on the host machine, e.g. `pytest` outside Docker
+      # (advertised as localhost, reachable via the mapped host port).
+      KAFKA_LISTENERS: PLAINTEXT://:9092,PLAINTEXT_HOST://:9094,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     healthcheck:
@@ -50,6 +54,112 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["alembic", "-c", "backend/alembic.ini", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql://fleet_user:fleet_password@postgres:5432/robot_fleet
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: robot-fleet-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://fleet_user:fleet_password@postgres:5432/robot_fleet
+      CACHE_HOST: redis
+      CACHE_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  telemetry-consumer:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: robot-fleet-telemetry-consumer
+    restart: unless-stopped
+    command: ["python", "-m", "backend.app.consumers.telemetry_consumer"]
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://fleet_user:fleet_password@postgres:5432/robot_fleet
+      CACHE_HOST: redis
+      CACHE_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Not an HTTP service — the backend image's HEALTHCHECK (GET /health)
+    # doesn't apply here. No lightweight process-liveness probe is worth
+    # adding (no procps in the slim image); rely on restart: unless-stopped
+    # and container exit status instead.
+    healthcheck:
+      disable: true
+
+  simulator:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: robot-fleet-simulator
+    restart: unless-stopped
+    command: ["python", "-m", "backend.simulator.run"]
+    environment:
+      DATABASE_URL: postgresql://fleet_user:fleet_password@postgres:5432/robot_fleet
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: robot-fleet-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      BACKEND_HOST: backend
+      BACKEND_PORT: 8000
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
   postgres_data:
