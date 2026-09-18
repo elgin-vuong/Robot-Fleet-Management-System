@@ -44,17 +44,13 @@ WRITE_ALLOWED_ROLES = (ROLE_OPERATOR, ROLE_ADMIN)
 @dataclass
 class ChatRunResult:
     response: ChatResponse
-    # The full provider-format transcript, for the route to persist as this
-    # user's conversation history. Kept out of ChatResponse (the API-facing
-    # model) since raw tool_use/tool_result content blocks are an internal,
-    # provider-specific detail — not something to expose over the wire.
     messages: list[dict]
 
 
 def _role_may_use(classification: str, role: str) -> bool:
     if classification == "write":
         return role in WRITE_ALLOWED_ROLES
-    return True  # any authenticated role may use read tools
+    return True
 
 
 def _tool_result_block(tool_use_id: str, content: str, is_error: bool = False) -> dict:
@@ -106,11 +102,6 @@ def run_chat(
 
         for call in turn.tool_calls:
             if confirmation_response is not None:
-                # A write action earlier in this same turn already produced
-                # a pending confirmation. Any further tool calls in this
-                # turn are not executed, but every tool_use still needs a
-                # paired tool_result or the next request's transcript would
-                # be malformed.
                 tool_results.append(
                     _tool_result_block(
                         call.id,
