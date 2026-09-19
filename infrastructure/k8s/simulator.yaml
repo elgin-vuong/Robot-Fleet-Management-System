@@ -26,3 +26,6 @@ spec:
                 name: robot-fleet-config
             - secretRef:
                 name: robot-fleet-secrets
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: robot-fleet-simulator

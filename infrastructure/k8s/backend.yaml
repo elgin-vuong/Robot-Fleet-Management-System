@@ -24,6 +24,14 @@ spec:
     metadata:
       labels:
         app: backend
+      annotations:
+        # Scraped via kubernetes_sd_configs in
+        # infrastructure/k8s/observability.yaml's Prometheus config,
+        # rather than a static target list — this is how new/rescheduled
+        # pods get picked up automatically.
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
     spec:
       containers:
         - name: backend
@@ -36,6 +44,9 @@ spec:
                 name: robot-fleet-config
             - secretRef:
                 name: robot-fleet-secrets
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: robot-fleet-api
           readinessProbe:
             httpGet:
               path: /health/ready

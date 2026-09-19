@@ -14,3 +14,22 @@ resources:
   - telemetry-consumer.yaml
   - simulator.yaml
   - frontend.yaml
+  # Prometheus, Grafana, OTel Collector, Jaeger. Included by default (unlike
+  # a purely optional add-on) since the dashboard/tracing verification steps
+  # in docs/OBSERVABILITY.md assume it's deployed — comment it out below if
+  # you want a lighter cluster with just the application services.
+  - observability.yaml
+
+# Generates the grafana-dashboard-robot-fleet ConfigMap from
+# grafana-dashboards/robot-fleet.json. Kustomize refuses configMapGenerator
+# file sources located outside the kustomization root (a security
+# restriction, not configurable from kustomization.yaml itself — only via a
+# kubectl flag deploy-local.sh doesn't pass), so this is a copy of
+# infrastructure/observability/grafana/dashboards/robot-fleet.json (Docker
+# Compose's copy) rather than a shared reference — keep both in sync when
+# editing panels.
+configMapGenerator:
+  - name: grafana-dashboard-robot-fleet
+    namespace: robot-fleet
+    files:
+      - robot-fleet.json=grafana-dashboards/robot-fleet.json

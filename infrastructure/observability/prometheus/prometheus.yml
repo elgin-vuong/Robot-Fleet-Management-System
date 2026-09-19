@@ -1,0 +1,49 @@
+# Prometheus scrape configuration for the Robot Fleet Platform.
+#
+# Targets use Docker Compose / Kubernetes service DNS names, never
+# localhost — Prometheus runs in its own container/pod and reaches other
+# services over the platform's container network (see docker-compose.yml
+# and infrastructure/k8s/observability.yaml).
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  # FastAPI backend: HTTP, robot command, WebSocket, and fleet-health
+  # metrics. See backend/app/observability/metrics.py for what's exposed
+  # and backend/app/main.py for the GET /metrics route.
+  - job_name: robot-fleet-backend
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["backend:8000"]
+        labels:
+          service: robot-fleet-backend
+
+  # Telemetry consumer: not an HTTP service, so it runs its own tiny
+  # metrics-only HTTP server (prometheus_client.start_http_server — see
+  # backend/app/consumers/telemetry_consumer.py) rather than exposing a
+  # route on the API. Same shared metric definitions/registry module,
+  # different process.
+  - job_name: robot-fleet-telemetry-consumer
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["telemetry-consumer:9100"]
+        labels:
+          service: robot-fleet-telemetry-consumer
+
+  # The OpenTelemetry Collector exposes its own operational metrics
+  # (spans received/exported/dropped) via its Prometheus exporter — useful
+  # for noticing if the tracing pipeline itself is backing up or dropping
+  # data, separate from the application's own metrics.
+  - job_name: otel-collector
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["otel-collector:8889"]
+        labels:
+          service: otel-collector
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          service: prometheus
