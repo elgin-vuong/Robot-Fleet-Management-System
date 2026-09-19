@@ -1,5 +1,5 @@
 from backend.app.database import SessionLocal
-from backend.app.kafka import TELEMETRY_TOPIC, get_producer
+from backend.app.kafka import TELEMETRY_TOPIC, publish
 from backend.app.models.command import Command
 from backend.app.models.robot import Robot as RobotRecord
 from backend.simulator.robot import Robot
@@ -116,5 +116,4 @@ class Fleet:
             db.close()
 
     def _publish_telemetry(self, robot):
-        producer = get_producer()
-        producer.send(TELEMETRY_TOPIC, key=robot.id, value=robot.get_telemetry())
+        publish(TELEMETRY_TOPIC, key=robot.id, value=robot.get_telemetry())

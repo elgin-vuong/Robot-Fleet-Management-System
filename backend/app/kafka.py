@@ -3,6 +3,8 @@ import os
 
 from kafka import KafkaProducer
 
+from backend.app.observability.metrics import kafka_messages_published_total
+
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_SECURITY_PROTOCOL = os.getenv("KAFKA_SECURITY_PROTOCOL", "PLAINTEXT")
 TELEMETRY_TOPIC = "robot.telemetry"
@@ -22,3 +24,17 @@ def get_producer() -> KafkaProducer:
         )
 
     return _producer
+
+
+def publish(topic: str, key: str | None, value: dict) -> None:
+    """Publish a message and record the `kafka_messages_published_total`
+    metric in one place, so every producer call site (simulator, API) gets
+    the metric for free instead of remembering to increment it themselves.
+
+    Trace context propagation onto the message (so the consumer can
+    continue the same trace) is handled by KafkaInstrumentor, which patches
+    KafkaProducer.send itself — see backend/app/observability/tracing.py —
+    so there's nothing to do here for that part.
+    """
+    get_producer().send(topic, key=key, value=value)
+    kafka_messages_published_total.labels(topic=topic).inc()

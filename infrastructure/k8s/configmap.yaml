@@ -9,3 +9,8 @@ data:
   KAFKA_BOOTSTRAP_SERVERS: kafka:9092
   AI_MODEL: claude-sonnet-5
   VOYAGE_MODEL: voyage-3.5-lite
+  # --- Observability (see infrastructure/k8s/observability.yaml and
+  # docs/OBSERVABILITY.md) ---
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  LOG_LEVEL: INFO
+  METRICS_PORT: "9100"

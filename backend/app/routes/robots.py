@@ -1,6 +1,8 @@
 import json
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException
+from opentelemetry.trace import Status, StatusCode
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
@@ -11,8 +13,17 @@ from backend.app.models.command import Command
 from backend.app.models.robot import Robot
 from backend.app.models.telemetry import Telemetry
 from backend.app.models.user import User
+from backend.app.observability.metrics import (
+    robot_commands_failed_total,
+    robot_commands_processed_total,
+    robot_commands_requested_total,
+)
+from backend.app.observability.tracing import get_tracer
 from backend.app.schemas.robot import RobotResponse, RobotCommand
 from backend.app.schemas.telemetry import TelemetryResponse
+
+tracer = get_tracer("backend.app.robots")
+logger = logging.getLogger("backend.app.robots")
 
 
 router = APIRouter(prefix="/robots", tags=["robots"])
@@ -122,23 +133,42 @@ def execute_robot_command(db: Session, robot_id: str, command: str) -> Robot:
     to a robot's persisted state. Both the HTTP endpoint below and the AI
     agent's write tool (backend/app/agent/tools.py) call this function
     directly, so there is exactly one command implementation rather than
-    two copies that could drift apart.
+    two copies that could drift apart. It's also therefore the one place
+    that needs command metrics/tracing to cover both call paths.
 
     Raises ValueError if the robot doesn't exist or the command isn't one
     of the currently-supported values in COMMAND_STATUS.
+
+    `command` is only used as a metric label once validated against the
+    small, fixed COMMAND_STATUS set — an arbitrary/invalid string from a
+    caller is normalized to "invalid" first so it can never create an
+    unbounded label value. `robot_id` deliberately isn't used as a label at
+    all (see the cardinality note in backend/app/observability/metrics.py).
     """
-    robot = db.get(Robot, robot_id)
+    command_label = command if command in COMMAND_STATUS else "invalid"
+    robot_commands_requested_total.labels(command=command_label).inc()
 
-    if robot is None or command not in COMMAND_STATUS:
-        raise ValueError("Invalid command or robot")
+    with tracer.start_as_current_span("robot.command.execute") as span:
+        span.set_attribute("robot.id", robot_id)
+        span.set_attribute("command.type", command)
 
-    robot.status = COMMAND_STATUS[command]
-    db.add(Command(robot_id=robot_id, command=command))
-    db.commit()
+        robot = db.get(Robot, robot_id)
 
-    redis_client.delete(ROBOTS_CACHE_KEY, _robot_cache_key(robot_id))
+        if robot is None or command not in COMMAND_STATUS:
+            robot_commands_failed_total.labels(command=command_label).inc()
+            span.set_status(Status(StatusCode.ERROR, "invalid command or robot"))
+            raise ValueError("Invalid command or robot")
 
-    return robot
+        robot.status = COMMAND_STATUS[command]
+        db.add(Command(robot_id=robot_id, command=command))
+        db.commit()
+
+        redis_client.delete(ROBOTS_CACHE_KEY, _robot_cache_key(robot_id))
+
+        robot_commands_processed_total.labels(command=command_label).inc()
+        span.set_attribute("robot.new_status", robot.status)
+
+        return robot
 
 
 @router.post("/{robot_id}/command")
@@ -151,7 +181,16 @@ def send_command(
     try:
         execute_robot_command(db, robot_id, command.command)
     except ValueError:
+        logger.warning(
+            "robot.command.rejected",
+            extra={"robot_id": robot_id, "command": command.command},
+        )
         raise HTTPException(status_code=404, detail="Invalid command or robot")
+
+    logger.info(
+        "robot.command.accepted",
+        extra={"robot_id": robot_id, "command": command.command},
+    )
 
     return {
         "robot_id": robot_id,

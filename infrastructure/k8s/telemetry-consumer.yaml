@@ -15,16 +15,30 @@ spec:
     metadata:
       labels:
         app: telemetry-consumer
+      annotations:
+        # This process isn't an HTTP service; it runs its own tiny
+        # metrics-only HTTP server on METRICS_PORT (see
+        # backend/app/consumers/telemetry_consumer.py) purely for
+        # Prometheus to scrape.
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        prometheus.io/path: /metrics
     spec:
       containers:
         - name: telemetry-consumer
           image: robot-fleet-backend:local
           imagePullPolicy: IfNotPresent
           command: ["python", "-m", "backend.app.consumers.telemetry_consumer"]
+          ports:
+            - containerPort: 9100
+              name: metrics
           envFrom:
             - configMapRef:
                 name: robot-fleet-config
             - secretRef:
                 name: robot-fleet-secrets
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: robot-fleet-telemetry-consumer
           # No HTTP port to probe; rely on the container's exit status /
           # Deployment's restart behavior for liveness.

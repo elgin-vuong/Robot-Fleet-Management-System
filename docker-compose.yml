@@ -83,6 +83,9 @@ services:
       CACHE_HOST: redis
       CACHE_PORT: 6379
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: robot-fleet-api
+      LOG_LEVEL: INFO
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,6 +95,8 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      otel-collector:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"]
       interval: 10s
@@ -114,6 +119,12 @@ services:
       CACHE_HOST: redis
       CACHE_PORT: 6379
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: robot-fleet-telemetry-consumer
+      LOG_LEVEL: INFO
+      METRICS_PORT: 9100
+    ports:
+      - "9100:9100" # Prometheus scrapes this process's own metrics here
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -121,6 +132,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     # Not an HTTP service — the backend image's HEALTHCHECK (GET /health)
     # doesn't apply here. No lightweight process-liveness probe is worth
     # adding (no procps in the slim image); rely on restart: unless-stopped
@@ -138,11 +151,16 @@ services:
     environment:
       DATABASE_URL: postgresql://fleet_user:fleet_password@postgres:5432/robot_fleet
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: robot-fleet-simulator
+      LOG_LEVEL: INFO
     depends_on:
       migrate:
         condition: service_completed_successfully
       kafka:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     healthcheck:
       disable: true
 
@@ -161,5 +179,76 @@ services:
       backend:
         condition: service_healthy
 
+  # --- Observability stack -------------------------------------------
+  # See infrastructure/observability/ for config and docs/OBSERVABILITY.md
+  # for the architecture overview and how to use each of these.
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.113.0
+    container_name: robot-fleet-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./infrastructure/observability/otel-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317" # OTLP gRPC (app processes export traces here)
+      - "4318:4318" # OTLP HTTP
+    depends_on:
+      jaeger:
+        condition: service_started
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    container_name: robot-fleet-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686" # Jaeger UI
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: robot-fleet-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infrastructure/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    ports:
+      - "9090:9090"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    container_name: robot-fleet-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      # Local/dev convenience only — change or remove this for any
+      # deployment reachable by anyone but the developer running it.
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./infrastructure/observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infrastructure/observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infrastructure/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
