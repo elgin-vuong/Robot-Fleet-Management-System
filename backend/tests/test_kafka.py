@@ -1,4 +1,6 @@
 from kafka import KafkaConsumer
+from kafka.admin import KafkaAdminClient, NewTopic
+from kafka.errors import TopicAlreadyExistsError
 
 from backend.app.consumers.telemetry_consumer import _save
 from backend.app.database import SessionLocal
@@ -15,8 +17,20 @@ def _clear_telemetry(robot_id):
         db.close()
 
 
+def _ensure_topic_exists(topic):
+    admin = KafkaAdminClient(bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS)
+    try:
+        admin.create_topics([NewTopic(name=topic, num_partitions=1, replication_factor=1)])
+    except TopicAlreadyExistsError:
+        pass
+    finally:
+        admin.close()
+
+
 def test_publish_telemetry_lands_on_topic():
     test_key = "TEST-KAFKA-PUBLISH"
+
+    _ensure_topic_exists(TELEMETRY_TOPIC)
 
     consumer = KafkaConsumer(
         TELEMETRY_TOPIC,
