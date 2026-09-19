@@ -1,0 +1,15 @@
+# Tells Grafana to load every dashboard JSON file in
+# infrastructure/observability/grafana/dashboards/ on startup, so the Robot
+# Fleet dashboard is available immediately without manual import.
+apiVersion: 1
+
+providers:
+  - name: robot-fleet
+    orgId: 1
+    folder: "Robot Fleet"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

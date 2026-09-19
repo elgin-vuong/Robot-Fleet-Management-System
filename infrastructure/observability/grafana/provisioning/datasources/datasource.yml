@@ -1,0 +1,18 @@
+# Auto-provisions the Prometheus datasource on Grafana startup so a
+# developer never has to click through "Add data source" manually after
+# `docker compose up`. Grafana reads every *.yml in this directory at boot.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    editable: true

@@ -7,3 +7,8 @@ nodes:
       - containerPort: 30080
         hostPort: 8080
         protocol: TCP
+      # Grafana's NodePort (see infrastructure/k8s/observability.yaml) —
+      # http://localhost:3000 on the host.
+      - containerPort: 30300
+        hostPort: 3000
+        protocol: TCP
