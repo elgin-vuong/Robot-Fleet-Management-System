@@ -28,7 +28,7 @@ jobs:
         run: pip install -r backend/requirements.txt
 
       - name: Start Postgres, Redis, Kafka
-        run: docker compose up -d
+        run: docker compose up -d postgres redis kafka
 
       - name: Wait for Postgres to accept connections
         run: |
