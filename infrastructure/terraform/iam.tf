@@ -149,13 +149,17 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
       values   = ["sts.amazonaws.com"]
     }
 
-    # Restricts to THIS repo, any branch/PR/tag. Tighten to
-    # "repo:${var.github_repository}:ref:refs/heads/main" once you only
-    # want main-branch pushes to be able to deploy.
+    # Restricted to THIS repo's main branch only — .github/workflows/docker.yml
+    # is the only workflow that ever requests id-token: write and calls
+    # aws-actions/configure-aws-credentials, and only on push-to-main (never
+    # on pull_request, including PRs from this same repo). This condition is
+    # the backstop for that: even if a future workflow change added OIDC to a
+    # PR-triggered job, AWS itself would still refuse to hand out credentials
+    # for anything but a real push to refs/heads/main.
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:*"]
+      values   = ["repo:${var.github_repository}:ref:refs/heads/main"]
     }
   }
 }

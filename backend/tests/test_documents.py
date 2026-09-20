@@ -49,7 +49,11 @@ def test_non_admin_cannot_upload(operator_headers):
 def test_admin_can_upload_document(admin_headers):
     response = client.post(
         "/documents",
-        json={"title": "Overheating Runbook", "source": "manual paste", "content": "If a robot overheats, stop it and let it cool."},
+        json={
+            "title": "Overheating Runbook",
+            "source": "manual paste",
+            "content": "If a robot overheats, stop it and let it cool.",
+        },
         headers=admin_headers,
     )
 

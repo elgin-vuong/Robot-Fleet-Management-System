@@ -381,31 +381,17 @@ interrupts it partway — `aws logs describe-log-groups --log-group-name-prefix 
 
 ## CI/CD preparation
 
-Three workflows exist today, all safe-by-default (no AWS credentials, no
-deploy, nothing destructive):
+**Full CI/CD documentation lives in [`docs/cicd.md`](../../docs/cicd.md)**
+— workflow-by-workflow breakdown, the OIDC/IAM trust chain, image tagging,
+deployment flow, rollback, required GitHub configuration, and known
+limitations. Kept there rather than duplicated here so there's one place
+to update.
 
-- `.github/workflows/terraform-validate.yml` — `fmt -check` + `validate` on any PR touching `infrastructure/terraform/`.
-- `.github/workflows/backend-tests.yml` — runs `pytest` against the real `docker-compose.yml` services.
-- `.github/workflows/frontend-build.yml` — `npm ci && npm run lint && npm run build`.
-
-The full pipeline this stack is designed for, in order — steps 1-6 exist
-today, 7-10 are documented here deliberately rather than implemented, since
-they need an AWS OIDC role ARN configured as a repository secret/variable
-first (a one-time, explicit, human-run setup step — see
-`github_actions_deploy_role_arn` in `terraform output`):
-
-1. Run backend tests — **implemented**
-2. Run frontend build — **implemented**
-3. Build Docker images — documented above ("ECR image workflow"), not yet wired into CI
-4. Push images to ECR (using the OIDC role's push-only permissions in `iam.tf`)
-5. Authenticate to AWS using GitHub OIDC (`aws-actions/configure-aws-credentials` with `role-to-assume: <github_actions_deploy_role_arn>`)
-6. Run `terraform fmt`/`validate` — **implemented**
-7. Run `terraform plan` (needs AWS credentials — a second, broader-permissioned role than the deploy role above; not created by this stack, since plan/apply access is a materially bigger grant than "push an image and update a known service")
-8. Require manual approval before anything resembling a prod apply (GitHub Environments with required reviewers is the standard mechanism)
-9. Deploy: `aws ecs register-task-definition` with the new image tag, then `aws ecs update-service --force-new-deployment`
-10. Smoke test: `curl -sf $(terraform output -raw app_url)/health` and a couple of authenticated endpoint checks
-
-Steps 7-9 deliberately are not implemented as GitHub Actions in this
-change — per the instructions this stack was built under, automatic
-deployment (especially anything that could reach prod) needs its own
-explicit setup and sign-off, not a default that ships enabled.
+Short version: `.github/workflows/{backend-ci,frontend-ci,terraform,docker}.yml`
+implement PR validation, and `docker.yml` additionally builds, pushes to
+ECR, and deploys to the `dev` ECS services on every push to `main`, reusing
+the `github_actions_deploy` OIDC role defined in `iam.tf` (not a second
+role). There is deliberately no `terraform plan` in CI and no
+staging/production deployment stage yet — both explained in
+`docs/cicd.md`'s "Known limitations," since both need their own explicit,
+separate decisions rather than being bundled into this.

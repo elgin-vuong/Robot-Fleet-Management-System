@@ -1,0 +1,49 @@
+# No test framework exists in this repo yet (no test script in
+# package.json) — see docs/cicd.md "Known limitations". This runs every
+# check that actually exists: lint, type-check, production build. The
+# build step is the one that would first catch e.g. a real TypeScript
+# error the other two miss, so its failure fails the job same as any test
+# failure would.
+name: Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Frontend Lint, Typecheck & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies (reproducible, lockfile-pinned)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Production build
+        run: npm run build

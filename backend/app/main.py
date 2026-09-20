@@ -21,6 +21,7 @@ configure_tracing(service_name="robot-fleet-api")
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -46,6 +47,12 @@ logger = logging.getLogger("backend.app.main")
 # per-request work, so a background refresh loop is simpler and cheaper
 # than recomputing them on every /metrics scrape.
 FLEET_GAUGE_REFRESH_SECONDS = 15
+
+# Baked into the image at build time (see backend/Dockerfile's GIT_SHA
+# build arg, set by .github/workflows/docker.yml from the commit being
+# built) — lets /health answer "which exact source built this" without
+# needing to correlate a deploy timestamp back to a commit by hand.
+APP_VERSION = os.getenv("GIT_SHA", "unknown")
 
 
 @asynccontextmanager
@@ -87,7 +94,7 @@ def metrics():
 @app.get("/health")
 def health_check():
     """Liveness: process is up and serving requests. No dependency checks."""
-    return {"status": "ok"}
+    return {"status": "ok", "version": APP_VERSION}
 
 
 @app.get("/health/ready")
@@ -113,6 +120,7 @@ def readiness_check():
         raise HTTPException(status_code=503, detail={"status": "not ready", "problems": problems})
 
     return {"status": "ready"}
+
 
 app.include_router(agent_router)
 app.include_router(auth_router)

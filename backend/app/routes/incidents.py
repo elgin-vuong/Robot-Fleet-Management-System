@@ -116,9 +116,7 @@ def list_incidents(
 
 
 @router.get("/{incident_id}", response_model=IncidentResponse)
-def get_incident(
-    incident_id: int, db: Session = Depends(get_db), _user: User = Depends(get_current_user)
-):
+def get_incident(incident_id: int, db: Session = Depends(get_db), _user: User = Depends(get_current_user)):
     incident = db.get(Incident, incident_id)
 
     if incident is None:

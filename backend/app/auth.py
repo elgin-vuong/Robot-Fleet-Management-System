@@ -45,9 +45,7 @@ def decode_access_token(token: str) -> dict:
         )
 
 
-def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
-) -> User:
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     payload = decode_access_token(token)
     user = db.query(User).filter(User.username == payload.get("sub")).first()
 

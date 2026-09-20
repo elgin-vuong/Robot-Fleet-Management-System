@@ -1,0 +1,269 @@
+# Image publishing + deployment. Trust boundary matters here more than any
+# other workflow in this repo:
+#   - PRs (including from this same repo) only ever validate that the
+#     images build and pass a Trivy scan — never touch AWS, never request
+#     an OIDC token.
+#   - Only a push to main authenticates to AWS, and only to push images +
+#     update the two ECS services that actually exist for the "dev"
+#     environment (infrastructure/terraform/environments/dev.tfvars).
+#     The IAM trust policy (infrastructure/terraform/iam.tf) independently
+#     enforces the same restriction at the AWS side, so this isn't the only
+#     thing standing between a PR and production credentials.
+#
+# telemetry-consumer and simulator are deliberately NOT deployed here: per
+# infrastructure/terraform/compute.tf, those two ECS services only exist
+# when enable_kafka = true, which dev.tfvars currently sets to false. See
+# docs/cicd.md "Known limitations" for what to add once that changes.
+name: Docker
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "frontend/**"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+
+permissions:
+  contents: read
+
+env:
+  ECS_CLUSTER: robot-fleet-dev-cluster
+
+jobs:
+  build-backend:
+    name: Docker Build (backend)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # only ever exercised below when github.event_name == 'push'
+    outputs:
+      image_ref: ${{ steps.set-image.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials (OIDC)
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        if: github.event_name == 'push'
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image reference
+        id: set-image
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "ref=${{ steps.ecr.outputs.registry }}/robot-fleet-dev-backend" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=robot-fleet-backend" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build image (PR — validates the build only, never pushed)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: false
+          load: true
+          tags: ${{ steps.set-image.outputs.ref }}:pr-${{ github.event.number }}
+          build-args: GIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build and push image (main)
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.set-image.outputs.ref }}:${{ github.sha }}
+            ${{ steps.set-image.outputs.ref }}:main
+          build-args: GIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Scan image for critical vulnerabilities (PR)
+        if: github.event_name == 'pull_request'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.set-image.outputs.ref }}:pr-${{ github.event.number }}
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+
+      - name: Scan image for critical vulnerabilities (main)
+        if: github.event_name == 'push'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.set-image.outputs.ref }}:${{ github.sha }}
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+
+  build-frontend:
+    name: Docker Build (frontend)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image_ref: ${{ steps.set-image.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials (OIDC)
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        if: github.event_name == 'push'
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image reference
+        id: set-image
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "ref=${{ steps.ecr.outputs.registry }}/robot-fleet-dev-frontend" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=robot-fleet-frontend" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build image (PR — validates the build only, never pushed)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: false
+          load: true
+          tags: ${{ steps.set-image.outputs.ref }}:pr-${{ github.event.number }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Build and push image (main)
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.set-image.outputs.ref }}:${{ github.sha }}
+            ${{ steps.set-image.outputs.ref }}:main
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Scan image for critical vulnerabilities (PR)
+        if: github.event_name == 'pull_request'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.set-image.outputs.ref }}:pr-${{ github.event.number }}
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+
+      - name: Scan image for critical vulnerabilities (main)
+        if: github.event_name == 'push'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.set-image.outputs.ref }}:${{ github.sha }}
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+
+  deploy-dev:
+    name: Deploy (dev)
+    needs: [build-backend, build-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Fetch current backend task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition robot-fleet-dev-backend \
+            --query taskDefinition > backend-task-def.json
+
+      - name: Render new backend image into task definition
+        id: render-backend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: backend-task-def.json
+          container-name: backend
+          image: ${{ needs.build-backend.outputs.image_ref }}:${{ github.sha }}
+
+      - name: Deploy backend service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-backend.outputs.task-definition }}
+          service: robot-fleet-dev-backend
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Fetch current frontend task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition robot-fleet-dev-frontend \
+            --query taskDefinition > frontend-task-def.json
+
+      - name: Render new frontend image into task definition
+        id: render-frontend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: frontend-task-def.json
+          container-name: frontend
+          image: ${{ needs.build-frontend.outputs.image_ref }}:${{ github.sha }}
+
+      - name: Deploy frontend service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-frontend.outputs.task-definition }}
+          service: robot-fleet-dev-frontend
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      # /health/ready (not just /health) deliberately — it's the endpoint
+      # that actually checks Postgres + Redis connectivity
+      # (backend/app/main.py), so this proves the deployed service can
+      # really serve traffic, not just that the process started.
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 10); do
+            if curl -sf "${{ vars.APP_HEALTH_URL }}/health/ready"; then
+              echo "Smoke test passed"
+              exit 0
+            fi
+            echo "Attempt $i/10 failed, retrying in 10s..."
+            sleep 10
+          done
+          echo "Smoke test failed after all retries" >&2
+          exit 1

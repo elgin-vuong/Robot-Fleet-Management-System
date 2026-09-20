@@ -73,6 +73,17 @@ resource "aws_ecs_service" "backend" {
   deployment_minimum_healthy_percent = 100
   deployment_maximum_percent         = 200
 
+  # Without this, a task definition that never passes the ALB health check
+  # just sits there indefinitely — ECS keeps retrying placement forever,
+  # and a CI step waiting on service stability would hang rather than fail.
+  # With it: ECS gives up after enough failures, automatically reverts to
+  # the last stable task definition, and the CI deploy step's
+  # wait-for-service-stability fails promptly instead of hanging.
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
   depends_on = [aws_lb_listener.http]
 
   lifecycle {
@@ -136,6 +147,11 @@ resource "aws_ecs_service" "frontend" {
 
   deployment_minimum_healthy_percent = 100
   deployment_maximum_percent         = 200
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
 
   depends_on = [aws_lb_listener.http]
 

@@ -10,9 +10,7 @@ DEFAULT_CHUNK_SIZE = 1000
 DEFAULT_OVERLAP = 150
 
 
-def chunk_text(
-    text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP
-) -> list[str]:
+def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP) -> list[str]:
     stripped = text.strip()
     if not stripped:
         return []

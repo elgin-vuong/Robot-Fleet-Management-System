@@ -28,9 +28,7 @@ request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
 # Attributes on Python's LogRecord that are already handled explicitly or are
 # CPython internals we don't want to leak into the JSON payload verbatim.
 _RESERVED_RECORD_ATTRS = frozenset(
-    logging.LogRecord(
-        name="", level=0, pathname="", lineno=0, msg="", args=(), exc_info=None
-    ).__dict__.keys()
+    logging.LogRecord(name="", level=0, pathname="", lineno=0, msg="", args=(), exc_info=None).__dict__.keys()
 ) | {"message", "asctime", "taskName"}
 
 SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "robot-fleet-backend")
@@ -48,9 +46,7 @@ class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         # Not self.formatTime(): that delegates to time.strftime, which
         # doesn't support %f (microseconds) — datetime.strftime does.
-        timestamp = datetime.fromtimestamp(record.created, tz=timezone.utc).strftime(
-            "%Y-%m-%dT%H:%M:%S.%fZ"
-        )
+        timestamp = datetime.fromtimestamp(record.created, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         payload = {
             "timestamp": timestamp,
             "level": record.levelname,

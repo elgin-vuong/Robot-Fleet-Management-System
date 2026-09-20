@@ -146,9 +146,7 @@ def main():
         auto_offset_reset="earliest",
     )
 
-    logger.info(
-        "telemetry_consumer.started", extra={"topic": TELEMETRY_TOPIC, "metrics_port": METRICS_PORT}
-    )
+    logger.info("telemetry_consumer.started", extra={"topic": TELEMETRY_TOPIC, "metrics_port": METRICS_PORT})
 
     try:
         for message in consumer:
