@@ -13,7 +13,6 @@ running Grafana instance).
 
 import json
 import logging
-import time
 
 from fastapi.testclient import TestClient
 from prometheus_client.parser import text_string_to_metric_families
@@ -25,7 +24,6 @@ from backend.app.models.telemetry import Telemetry
 from backend.app.observability import metrics
 from backend.app.observability.logging import JSONFormatter, request_id_var
 from backend.app.observability.tracing import configure_tracing, get_tracer
-from backend.app.websocket.manager import manager
 
 client = TestClient(app)
 

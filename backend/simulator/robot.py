@@ -98,9 +98,7 @@ class Robot:
 
     def _maybe_fail(self):
         if random.random() < FAILURE_PROBABILITY:
-            self.status = random.choice(
-                ["ERROR", "NETWORK_ERROR", "MOTOR_ERROR", "OBSTACLE_DETECTED"]
-            )
+            self.status = random.choice(["ERROR", "NETWORK_ERROR", "MOTOR_ERROR", "OBSTACLE_DETECTED"])
             self.speed = 0.0
 
     def _apply_thresholds(self):

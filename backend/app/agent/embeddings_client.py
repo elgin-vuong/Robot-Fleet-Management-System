@@ -37,9 +37,7 @@ class EmbeddingsClient:
 
         self._client = voyageai.Client(api_key=self.api_key)
 
-    def embed(
-        self, texts: list[str], *, input_type: Literal["document", "query"]
-    ) -> list[list[float]]:
+    def embed(self, texts: list[str], *, input_type: Literal["document", "query"]) -> list[list[float]]:
         try:
             result = self._client.embed(
                 texts,

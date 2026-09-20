@@ -1,2 +1,21 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+# Deliberately the classic minimal set (pyflakes + basic pycodestyle) —
+# not ruff's broader default preset, which pulls in opinionated rules
+# (e.g. flagging every `except Exception:`) that would require relitigating
+# patterns already used deliberately throughout this codebase for graceful
+# degradation (LLM/embeddings clients, websocket auth, etc). Widen this
+# deliberately later if the team wants stricter checks, not by accident.
+select = ["E4", "E7", "E9", "F"]
+# E402: several modules (backend/app/main.py, backend/app/consumers/
+# telemetry_consumer.py) intentionally import after calling
+# configure_logging()/configure_tracing()/load_dotenv() so those take
+# effect before any other backend.app import runs — see the comments in
+# those files. Not a mistake to flag.
+ignore = ["E402"]

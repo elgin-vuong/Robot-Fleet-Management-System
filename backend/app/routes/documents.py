@@ -107,9 +107,7 @@ def list_documents(db: Session = Depends(get_db), _user: User = Depends(get_curr
 
 
 @router.get("/{document_id}", response_model=DocumentResponse)
-def get_document(
-    document_id: int, db: Session = Depends(get_db), _user: User = Depends(get_current_user)
-):
+def get_document(document_id: int, db: Session = Depends(get_db), _user: User = Depends(get_current_user)):
     document = db.get(Document, document_id)
 
     if document is None:

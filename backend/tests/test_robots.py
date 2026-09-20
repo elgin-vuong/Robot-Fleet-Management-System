@@ -5,11 +5,14 @@ from backend.app.routes.robots import ROBOTS_CACHE_KEY, _robot_cache_key
 
 client = TestClient(app)
 
+
 def test_health():
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    body = response.json()
+    assert body["status"] == "ok"
+    assert "version" in body
 
 
 def test_get_robots_requires_auth():
@@ -28,6 +31,7 @@ def test_get_robots(viewer_headers):
     assert len(data) > 0
     assert "id" in data[0]
 
+
 def test_get_single_robot(viewer_headers):
     response = client.get("/robots/R001", headers=viewer_headers)
 
@@ -37,82 +41,77 @@ def test_get_single_robot(viewer_headers):
 
     assert robot["id"] == "R001"
 
+
 def test_invalid_robot(viewer_headers):
     response = client.get("/robots/R823", headers=viewer_headers)
 
     assert response.status_code == 404
 
+
 def test_viewer_cannot_send_command(viewer_headers):
     response = client.post(
         "/robots/R001/command",
-        json={
-            "command": "START"
-        },
+        json={"command": "START"},
         headers=viewer_headers,
     )
 
     assert response.status_code == 403
 
+
 def test_start_robot(operator_headers):
     response = client.post(
         "/robots/R001/command",
-        json={
-            "command": "START"
-        },
+        json={"command": "START"},
         headers=operator_headers,
     )
 
     assert response.status_code == 200
+
 
 def test_stop_robot(operator_headers):
     response = client.post(
         "/robots/R001/command",
-        json={
-            "command": "STOP"
-        },
+        json={"command": "STOP"},
         headers=operator_headers,
     )
     assert response.status_code == 200
+
 
 def test_invalid_command(operator_headers):
     response = client.post(
         "/robots/R001/command",
-        json={
-            "command": "FLY"
-        },
+        json={"command": "FLY"},
         headers=operator_headers,
     )
     assert response.status_code == 404
+
 
 def test_start_robot_invalid_id(operator_headers):
     response = client.post(
         "/robots/R999/command",
-        json={
-            "command": "START"
-        },
+        json={"command": "START"},
         headers=operator_headers,
     )
     assert response.status_code == 404
+
 
 def test_stop_robot_invalid_id(operator_headers):
     response = client.post(
         "/robots/R999/command",
-        json={
-            "command": "STOP"
-        },
+        json={"command": "STOP"},
         headers=operator_headers,
     )
     assert response.status_code == 404
 
+
 def test_start_robot_valid_id(operator_headers):
     response = client.post(
         "/robots/R003/command",
-        json={
-            "command": "START"
-        },
+        json={"command": "START"},
         headers=operator_headers,
     )
     assert response.status_code == 200
+
 
 def test_get_robot_populates_cache(viewer_headers):
     redis_client.delete(_robot_cache_key("R004"))
@@ -121,12 +120,14 @@ def test_get_robot_populates_cache(viewer_headers):
 
     assert redis_client.exists(_robot_cache_key("R004"))
 
+
 def test_get_robots_populates_list_cache(viewer_headers):
     redis_client.delete(ROBOTS_CACHE_KEY)
 
     client.get("/robots", headers=viewer_headers)
 
     assert redis_client.exists(ROBOTS_CACHE_KEY)
+
 
 def test_command_invalidates_cache(operator_headers):
     client.get("/robots/R004", headers=operator_headers)
@@ -137,9 +138,7 @@ def test_command_invalidates_cache(operator_headers):
 
     response = client.post(
         "/robots/R004/command",
-        json={
-            "command": "START"
-        },
+        json={"command": "START"},
         headers=operator_headers,
     )
 

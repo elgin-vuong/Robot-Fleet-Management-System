@@ -215,8 +215,19 @@ def test_search_documents_ranks_by_similarity(db, operator_ctx):
     close_vector = [0.99] + [0.01] * (dim - 1)
     far_vector = [0.0, 1.0] + [0.0] * (dim - 2)
 
-    db.add(DocumentChunk(document_id=close_doc.id, chunk_index=0, chunk_text="closely related content", embedding=close_vector))
-    db.add(DocumentChunk(document_id=far_doc.id, chunk_index=0, chunk_text="unrelated content", embedding=far_vector))
+    db.add(
+        DocumentChunk(
+            document_id=close_doc.id,
+            chunk_index=0,
+            chunk_text="closely related content",
+            embedding=close_vector,
+        )
+    )
+    db.add(
+        DocumentChunk(
+            document_id=far_doc.id, chunk_index=0, chunk_text="unrelated content", embedding=far_vector
+        )
+    )
     db.commit()
 
     original = tools_module.get_embeddings_client

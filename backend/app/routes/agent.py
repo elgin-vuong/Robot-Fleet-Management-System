@@ -95,7 +95,9 @@ def chat(
         )
     except AgentError as exc:
         logger.error("agent.chat.error", extra={"user_id": current_user.id, "error": str(exc)})
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The assistant could not complete that request.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="The assistant could not complete that request."
+        )
 
     save_history(current_user.id, result.messages)
     return result.response
@@ -128,7 +130,9 @@ def confirm(
             "agent.confirmation.ownership_mismatch",
             extra={"user_id": current_user.id, "confirmation_owner": pending["user_id"]},
         )
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This confirmation does not belong to you.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="This confirmation does not belong to you."
+        )
 
     if current_user.role not in (ROLE_OPERATOR, ROLE_ADMIN):
         logger.warning(
@@ -147,7 +151,11 @@ def confirm(
     except Exception:
         logger.error(
             "agent.confirmation.execution_failed",
-            extra={"user_id": current_user.id, "robot_id": pending["robot_id"], "command": pending["command"]},
+            extra={
+                "user_id": current_user.id,
+                "robot_id": pending["robot_id"],
+                "command": pending["command"],
+            },
         )
         return ConfirmResponse(
             response=f"Could not send '{pending['command']}' to {pending['robot_id']}. The command was not applied.",

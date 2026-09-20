@@ -3,6 +3,13 @@
 # the container command differs (see docker-compose.yml / k8s manifests).
 FROM python:3.13-slim
 
+# Set by .github/workflows/docker.yml at build time to the commit SHA being
+# built — baked into the image (not passed in at deploy time) since it's a
+# property of what's IN the image, immutable for the image's lifetime.
+# Exposed at runtime via GET /health's "version" field.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=${GIT_SHA}
+
 WORKDIR /app
 
 RUN groupadd --system app && useradd --system --gid app --no-create-home app

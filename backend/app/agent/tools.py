@@ -416,7 +416,10 @@ TOOLS: dict[str, ToolSpec] = {
         input_schema={
             "type": "object",
             "properties": {
-                "query": {"type": "string", "description": "Natural-language question or topic to search for"},
+                "query": {
+                    "type": "string",
+                    "description": "Natural-language question or topic to search for",
+                },
                 "limit": {"type": "integer", "minimum": 1, "maximum": MAX_LIMIT, "default": 5},
             },
             "required": ["query"],
@@ -435,7 +438,10 @@ TOOLS: dict[str, ToolSpec] = {
             "type": "object",
             "properties": {
                 "robot_id": {"type": "string"},
-                "command": {"type": "string", "description": "One of the supported robot commands, e.g. START or STOP"},
+                "command": {
+                    "type": "string",
+                    "description": "One of the supported robot commands, e.g. START or STOP",
+                },
             },
             "required": ["robot_id", "command"],
         },

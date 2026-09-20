@@ -9,10 +9,7 @@ VALID_COMMANDS = ("START", "STOP", "CHARGE", "RESET")
 
 class Fleet:
     def __init__(self, count=5, persist=True, publish=True):
-        self.robots = {
-            f"R{i:03}": Robot(f"R{i:03}")
-            for i in range(1, count + 1)
-        }
+        self.robots = {f"R{i:03}": Robot(f"R{i:03}") for i in range(1, count + 1)}
         self.persist = persist
         self.publish = publish
 
@@ -20,10 +17,7 @@ class Fleet:
             self._sync_robots_to_db()
 
     def get_all_robots(self):
-        return [
-            robot.get_telemetry()
-            for robot in self.robots.values()
-        ]
+        return [robot.get_telemetry() for robot in self.robots.values()]
 
     def get_robot(self, robot_id):
         robot = self.robots.get(robot_id)

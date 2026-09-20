@@ -66,12 +66,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             route = _route_template(request)
 
             http_requests_in_flight.dec()
-            http_requests_total.labels(
-                method=request.method, route=route, status_code=str(status_code)
-            ).inc()
-            http_request_duration_seconds.labels(method=request.method, route=route).observe(
-                duration
-            )
+            http_requests_total.labels(method=request.method, route=route, status_code=str(status_code)).inc()
+            http_request_duration_seconds.labels(method=request.method, route=route).observe(duration)
 
             # request_id is not passed here — it's already attached to every
             # log record automatically via request_id_var (see logging.py).

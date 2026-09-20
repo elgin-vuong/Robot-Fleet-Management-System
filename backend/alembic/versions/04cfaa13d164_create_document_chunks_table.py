@@ -5,6 +5,7 @@ Revises: 635f56c7f820
 Create Date: 2026-09-16 00:00:03.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -13,8 +14,8 @@ from pgvector.sqlalchemy import Vector
 
 
 # revision identifiers, used by Alembic.
-revision: str = '04cfaa13d164'
-down_revision: Union[str, Sequence[str], None] = '635f56c7f820'
+revision: str = "04cfaa13d164"
+down_revision: Union[str, Sequence[str], None] = "635f56c7f820"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -23,15 +24,16 @@ EMBEDDING_DIM = 1024
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.create_table('document_chunks',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('document_id', sa.Integer(), nullable=False),
-    sa.Column('chunk_index', sa.Integer(), nullable=False),
-    sa.Column('chunk_text', sa.Text(), nullable=False),
-    sa.Column('embedding', Vector(EMBEDDING_DIM), nullable=False),
-    sa.ForeignKeyConstraint(['document_id'], ['documents.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('document_id', 'chunk_index', name='uq_document_chunks_document_id_chunk_index')
+    op.create_table(
+        "document_chunks",
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("document_id", sa.Integer(), nullable=False),
+        sa.Column("chunk_index", sa.Integer(), nullable=False),
+        sa.Column("chunk_text", sa.Text(), nullable=False),
+        sa.Column("embedding", Vector(EMBEDDING_DIM), nullable=False),
+        sa.ForeignKeyConstraint(["document_id"], ["documents.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("document_id", "chunk_index", name="uq_document_chunks_document_id_chunk_index"),
     )
     # lists=10 targets a small ops knowledge base (roughly tens to a few
     # hundred chunks to start, growing toward low thousands) — sqrt(N) for
@@ -53,4 +55,4 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade schema."""
     op.execute("DROP INDEX IF EXISTS ix_document_chunks_embedding_ivfflat")
-    op.drop_table('document_chunks')
+    op.drop_table("document_chunks")

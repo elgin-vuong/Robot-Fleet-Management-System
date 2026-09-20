@@ -163,8 +163,7 @@ fleet_robots_active = Gauge(
 
 fleet_robots_unhealthy = Gauge(
     "fleet_robots_unhealthy",
-    "Number of robots considered unhealthy (low battery or an open "
-    "high/critical severity incident).",
+    "Number of robots considered unhealthy (low battery or an open high/critical severity incident).",
     registry=REGISTRY,
 )
 
@@ -194,10 +193,7 @@ def refresh_fleet_gauges(db) -> None:
 
     total = db.query(func.count(Robot.id)).scalar() or 0
     low_battery = (
-        db.query(func.count(Robot.id))
-        .filter(Robot.battery < UNHEALTHY_BATTERY_THRESHOLD)
-        .scalar()
-        or 0
+        db.query(func.count(Robot.id)).filter(Robot.battery < UNHEALTHY_BATTERY_THRESHOLD).scalar() or 0
     )
     critical_incident_robots = (
         db.query(func.count(func.distinct(Incident.robot_id)))

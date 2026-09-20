@@ -23,7 +23,6 @@ def test_login_success():
 
     body = response.json()
 
-
     assert "access_token" in body
     assert body["token_type"] == "bearer"
 

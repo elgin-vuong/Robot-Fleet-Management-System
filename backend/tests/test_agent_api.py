@@ -93,7 +93,9 @@ def _tool_use_turn(tool_name, arguments, call_id="t1", text=None):
 
 
 def _final_text_turn(text):
-    return LLMTurnResult(text=text, tool_calls=[], stop_reason="end_turn", raw_content=[{"type": "text", "text": text}])
+    return LLMTurnResult(
+        text=text, tool_calls=[], stop_reason="end_turn", raw_content=[{"type": "text", "text": text}]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -173,7 +175,11 @@ def test_invalid_robot_in_read_tool_is_reported_not_fatal(viewer_headers, use_ll
 
 def test_write_request_returns_confirmation_not_execution(operator_headers, use_llm_client):
     fake = ScriptedLLMClient(
-        [_tool_use_turn("send_robot_command", {"robot_id": "R001", "command": "STOP"}, text="Confirm stopping R001?")]
+        [
+            _tool_use_turn(
+                "send_robot_command", {"robot_id": "R001", "command": "STOP"}, text="Confirm stopping R001?"
+            )
+        ]
     )
     use_llm_client(fake)
 
@@ -228,16 +234,16 @@ def test_full_confirm_flow_executes_via_existing_command_service(operator_header
     finally:
         db.close()
 
-    fake = ScriptedLLMClient(
-        [_tool_use_turn("send_robot_command", {"robot_id": "R003", "command": "START"})]
-    )
+    fake = ScriptedLLMClient([_tool_use_turn("send_robot_command", {"robot_id": "R003", "command": "START"})])
     use_llm_client(fake)
 
     chat_response = client.post("/agent/chat", json={"message": "Start R003"}, headers=operator_headers)
     confirmation_id = chat_response.json()["confirmation_id"]
     assert confirmation_id
 
-    confirm_response = client.post("/agent/confirm", json={"confirmation_id": confirmation_id}, headers=operator_headers)
+    confirm_response = client.post(
+        "/agent/confirm", json={"confirmation_id": confirmation_id}, headers=operator_headers
+    )
 
     assert confirm_response.status_code == 200
     body = confirm_response.json()
@@ -258,25 +264,23 @@ def test_full_confirm_flow_executes_via_existing_command_service(operator_header
 
 
 def test_confirmation_executes_exactly_once(operator_headers, use_llm_client):
-    fake = ScriptedLLMClient(
-        [_tool_use_turn("send_robot_command", {"robot_id": "R004", "command": "STOP"})]
-    )
+    fake = ScriptedLLMClient([_tool_use_turn("send_robot_command", {"robot_id": "R004", "command": "STOP"})])
     use_llm_client(fake)
 
     chat_response = client.post("/agent/chat", json={"message": "Stop R004"}, headers=operator_headers)
     confirmation_id = chat_response.json()["confirmation_id"]
 
     first = client.post("/agent/confirm", json={"confirmation_id": confirmation_id}, headers=operator_headers)
-    second = client.post("/agent/confirm", json={"confirmation_id": confirmation_id}, headers=operator_headers)
+    second = client.post(
+        "/agent/confirm", json={"confirmation_id": confirmation_id}, headers=operator_headers
+    )
 
     assert first.status_code == 200
     assert second.status_code == 404
 
 
 def test_confirm_rejects_wrong_user(operator_headers, admin_headers, use_llm_client):
-    fake = ScriptedLLMClient(
-        [_tool_use_turn("send_robot_command", {"robot_id": "R005", "command": "STOP"})]
-    )
+    fake = ScriptedLLMClient([_tool_use_turn("send_robot_command", {"robot_id": "R005", "command": "STOP"})])
     use_llm_client(fake)
 
     chat_response = client.post("/agent/chat", json={"message": "Stop R005"}, headers=operator_headers)
@@ -288,7 +292,9 @@ def test_confirm_rejects_wrong_user(operator_headers, admin_headers, use_llm_cli
 
 
 def test_confirm_rejects_unknown_confirmation_id(operator_headers):
-    response = client.post("/agent/confirm", json={"confirmation_id": "nonexistent"}, headers=operator_headers)
+    response = client.post(
+        "/agent/confirm", json={"confirmation_id": "nonexistent"}, headers=operator_headers
+    )
     assert response.status_code == 404
 
 
@@ -298,9 +304,7 @@ def test_confirm_rechecks_role_at_execution_time(operator_headers, use_llm_clien
     still be blocked — permission is re-checked at confirm time, not just
     trusted from when the confirmation was created.
     """
-    fake = ScriptedLLMClient(
-        [_tool_use_turn("send_robot_command", {"robot_id": "R001", "command": "STOP"})]
-    )
+    fake = ScriptedLLMClient([_tool_use_turn("send_robot_command", {"robot_id": "R001", "command": "STOP"})])
     use_llm_client(fake)
 
     chat_response = client.post("/agent/chat", json={"message": "Stop R001"}, headers=operator_headers)
@@ -315,7 +319,9 @@ def test_confirm_rechecks_role_at_execution_time(operator_headers, use_llm_clien
         db.close()
 
     try:
-        response = client.post("/agent/confirm", json={"confirmation_id": confirmation_id}, headers=operator_headers)
+        response = client.post(
+            "/agent/confirm", json={"confirmation_id": confirmation_id}, headers=operator_headers
+        )
         assert response.status_code == 403
     finally:
         db = SessionLocal()
@@ -333,16 +339,16 @@ def test_confirm_never_claims_success_when_execution_fails(operator_headers, use
     codebase's real command path is DB-only, not Kafka-backed), the agent
     must report failure, never a false success.
     """
-    fake = ScriptedLLMClient(
-        [_tool_use_turn("send_robot_command", {"robot_id": "R002", "command": "START"})]
-    )
+    fake = ScriptedLLMClient([_tool_use_turn("send_robot_command", {"robot_id": "R002", "command": "START"})])
     use_llm_client(fake)
 
     chat_response = client.post("/agent/chat", json={"message": "Start R002"}, headers=operator_headers)
     confirmation_id = chat_response.json()["confirmation_id"]
 
     with patch("backend.app.routes.agent.send_robot_command", side_effect=RuntimeError("db unavailable")):
-        response = client.post("/agent/confirm", json={"confirmation_id": confirmation_id}, headers=operator_headers)
+        response = client.post(
+            "/agent/confirm", json={"confirmation_id": confirmation_id}, headers=operator_headers
+        )
 
     assert response.status_code == 200
     body = response.json()
@@ -399,7 +405,9 @@ def test_reset_chat_clears_history(operator_headers, use_llm_client):
     assert "Why is R001 stopped?" not in flattened
 
 
-def test_history_survives_a_confirmation_turn_without_corrupting_the_next_request(operator_headers, use_llm_client):
+def test_history_survives_a_confirmation_turn_without_corrupting_the_next_request(
+    operator_headers, use_llm_client
+):
     """A write-tool turn produces a dangling tool_use with no executed
     result. If that ever gets persisted without a matching tool_result, the
     next request's transcript would be malformed. This proves the app
@@ -418,7 +426,9 @@ def test_history_survives_a_confirmation_turn_without_corrupting_the_next_reques
     assert first.status_code == 200
     assert first.json()["requires_confirmation"] is True
 
-    second = client.post("/agent/chat", json={"message": "actually never mind, tell me about R002"}, headers=operator_headers)
+    second = client.post(
+        "/agent/chat", json={"message": "actually never mind, tell me about R002"}, headers=operator_headers
+    )
     assert second.status_code == 200
     assert second.json()["response"] == "Sure — what else would you like to know?"
 

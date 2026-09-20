@@ -87,6 +87,7 @@ def get_robot(robot_id: str, db: Session = Depends(get_db), _user: User = Depend
 
     return payload
 
+
 @router.get("/{robot_id}/telemetry", response_model=list[TelemetryResponse])
 def get_robot_telemetry(
     robot_id: str,
