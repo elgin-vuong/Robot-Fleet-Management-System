@@ -97,7 +97,7 @@ jobs:
 
       - name: Scan image for critical vulnerabilities (PR)
         if: github.event_name == 'pull_request'
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: ${{ steps.set-image.outputs.ref }}:pr-${{ github.event.number }}
           format: table
@@ -106,7 +106,7 @@ jobs:
 
       - name: Scan image for critical vulnerabilities (main)
         if: github.event_name == 'push'
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: ${{ steps.set-image.outputs.ref }}:${{ github.sha }}
           format: table
@@ -174,7 +174,7 @@ jobs:
 
       - name: Scan image for critical vulnerabilities (PR)
         if: github.event_name == 'pull_request'
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: ${{ steps.set-image.outputs.ref }}:pr-${{ github.event.number }}
           format: table
@@ -183,7 +183,7 @@ jobs:
 
       - name: Scan image for critical vulnerabilities (main)
         if: github.event_name == 'push'
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: ${{ steps.set-image.outputs.ref }}:${{ github.sha }}
           format: table
