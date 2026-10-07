@@ -149,7 +149,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
       values   = ["sts.amazonaws.com"]
     }
 
-    # Restricted to THIS repo's main branch only — .github/workflows/docker.yml
+    # Restricted to THIS repo's main branch only — .github/workflows/ci-cd.yml
     # is the only workflow that ever requests id-token: write and calls
     # aws-actions/configure-aws-credentials, and only on push-to-main (never
     # on pull_request, including PRs from this same repo). This condition is

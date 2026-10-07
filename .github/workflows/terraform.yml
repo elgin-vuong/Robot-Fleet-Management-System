@@ -10,16 +10,13 @@
 # the whole account is a materially bigger, more sensitive decision than
 # this task covers — see docs/cicd.md "Known limitations" for what a
 # plan-capable role would need and why it's deliberately not built yet.
+#
+# Reusable workflow only — called by ci-cd.yml, which decides when it runs
+# (path filtering) so it can be part of the single required "CI passed" check.
 name: Terraform
 
 on:
-  pull_request:
-    paths:
-      - "infrastructure/terraform/**"
-  push:
-    branches: [main]
-    paths:
-      - "infrastructure/terraform/**"
+  workflow_call:
 
 permissions:
   contents: read
