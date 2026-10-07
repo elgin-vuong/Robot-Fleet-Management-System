@@ -387,9 +387,10 @@ deployment flow, rollback, required GitHub configuration, and known
 limitations. Kept there rather than duplicated here so there's one place
 to update.
 
-Short version: `.github/workflows/{backend-ci,frontend-ci,terraform,docker}.yml`
-implement PR validation, and `docker.yml` additionally builds, pushes to
-ECR, and deploys to the `dev` ECS services on every push to `main`, reusing
+Short version: `.github/workflows/ci-cd.yml` is the one pipeline. It runs
+the checks in `{backend-ci,frontend-ci,terraform}.yml` on every PR and
+push, and on push to `main` additionally builds, pushes to ECR, and — only
+once those checks pass — deploys to the `dev` ECS services, reusing
 the `github_actions_deploy` OIDC role defined in `iam.tf` (not a second
 role). There is deliberately no `terraform plan` in CI and no
 staging/production deployment stage yet — both explained in
