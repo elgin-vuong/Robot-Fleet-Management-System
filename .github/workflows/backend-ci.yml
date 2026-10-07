@@ -7,22 +7,13 @@
 # be duplicate, drifting configuration for no real benefit. Using the same
 # compose file CI and developers both run also means "works in CI" and
 # "works locally" stay the same claim.
+#
+# Reusable workflow only — called by ci-cd.yml, which decides when it runs
+# (path filtering) and gates the deploy on it passing.
 name: Backend CI
 
 on:
-  pull_request:
-    paths:
-      - "backend/**"
-      - "docker-compose.yml"
-      - "pyproject.toml"
-      - ".github/workflows/backend-ci.yml"
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - "docker-compose.yml"
-      - "pyproject.toml"
-      - ".github/workflows/backend-ci.yml"
+  workflow_call:
 
 permissions:
   contents: read

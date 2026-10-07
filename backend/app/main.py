@@ -49,7 +49,7 @@ logger = logging.getLogger("backend.app.main")
 FLEET_GAUGE_REFRESH_SECONDS = 15
 
 # Baked into the image at build time (see backend/Dockerfile's GIT_SHA
-# build arg, set by .github/workflows/docker.yml from the commit being
+# build arg, set by .github/workflows/ci-cd.yml from the commit being
 # built) — lets /health answer "which exact source built this" without
 # needing to correlate a deploy timestamp back to a commit by hand.
 APP_VERSION = os.getenv("GIT_SHA", "unknown")

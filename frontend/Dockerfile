@@ -13,7 +13,7 @@ FROM nginx:1.27-alpine
 # as of this Dockerfile). `apk upgrade` pulls whatever's currently patched
 # in Alpine's repos at build time rather than waiting on a Docker Hub
 # rebuild — cheap (one more layer, same base) and closes exactly this class
-# of gap. docker.yml's Trivy scan step is what actually catches it if this
+# of gap. ci-cd.yml's Trivy scan step is what actually catches it if this
 # ever regresses.
 RUN apk upgrade --no-cache
 

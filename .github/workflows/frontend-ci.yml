@@ -4,18 +4,13 @@
 # build step is the one that would first catch e.g. a real TypeScript
 # error the other two miss, so its failure fails the job same as any test
 # failure would.
+#
+# Reusable workflow only — called by ci-cd.yml, which decides when it runs
+# (path filtering) and gates the deploy on it passing.
 name: Frontend CI
 
 on:
-  pull_request:
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-ci.yml"
-  push:
-    branches: [main]
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-ci.yml"
+  workflow_call:
 
 permissions:
   contents: read
