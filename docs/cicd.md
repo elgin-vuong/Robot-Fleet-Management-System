@@ -100,7 +100,7 @@ repo's frontend yet** — see "Known limitations."
 The one workflow with real AWS access. Its own jobs, besides calling the
 three workflows above:
 
-1. **`changes`** (`Detect changes`) — `dorny/paths-filter` works out which of backend / frontend / terraform / images changed; every other job keys off its outputs. There's deliberately no workflow-level `paths:` filter: a workflow that never starts leaves a required status check pending forever, so the workflow always runs and skips individual jobs instead.
+1. **`changes`** (`Detect changes`) — on a PR, `dorny/paths-filter` works out which of backend / frontend / terraform / images changed; every other job keys off its outputs. On a push to `main` it skips the filter and marks everything as changed, so `main` always gets the full test suite, both image builds and a deploy. (Filtering on push would diff against the previous `main` commit, and a force-push to `main` breaks that: the same files under a new SHA look like "no changes", so nothing deploys, and re-running crashes because the old commit can no longer be fetched.) There's deliberately no workflow-level `paths:` filter: a workflow that never starts leaves a required status check pending forever, so the workflow always runs and skips individual jobs instead.
 2. **`build-backend`** / **`build-frontend`** — run when `backend/**`, `frontend/**` or `.dockerignore` changed (both images are always built together, because `deploy-dev` deploys both at the same SHA). On a PR: `docker buildx build` (no push), then a Trivy scan for `CRITICAL` vulnerabilities (fails the job if any are found). On push to `main`: same build, plus push to ECR tagged `:<git-sha>`, plus the same Trivy scan against the real pushed image.
 3. **`ci-passed`** (`CI passed`) — `needs:` every check and build job and runs `if: always()`. Fails if any of them failed or was cancelled; passes if they succeeded or were skipped by the path filter. This is the **one** status check branch protection should require (see #15).
 4. **`deploy-dev`** — only on push to `main`, `needs: [ci-passed, build-backend, build-frontend]`, and only if all three succeeded. (It uses `!cancelled()` instead of the default `success()` so that a test job legitimately skipped by the path filter doesn't skip the deploy too.) Fetches each service's current ECS task definition, renders in the new image (`aws-actions/amazon-ecs-render-task-definition`), deploys it (`aws-actions/amazon-ecs-deploy-task-definition`, `wait-for-service-stability: true`), then smoke-tests `GET /health/ready`.
@@ -167,8 +167,8 @@ overwritten.
 ```
 push to main
    │
-   ├─ changes ─┬─ backend-ci   ─┐   (each only if its paths changed;
-   │           ├─ frontend-ci  ─┤    skipped counts as passing)
+   ├─ changes ─┬─ backend-ci   ─┐   (on main: all of them, always;
+   │           ├─ frontend-ci  ─┤    on a PR: only if its paths changed)
    │           ├─ terraform    ─┤
    │           ├─ build-backend ┤
    │           └─ build-frontend┤
@@ -277,7 +277,7 @@ risky to build without careful thought (see "Known limitations").
 - **`ci-cd.yml`'s AWS steps fail with "Not authorized to perform sts:AssumeRoleWithWebIdentity"**: almost always one of — (a) `AWS_DEPLOY_ROLE_ARN` isn't set as a repository variable (an Environment-scoped one won't be seen — see #11), (b) the workflow run isn't a push to `main` (the trust policy only allows that exact ref), (c) Terraform hasn't actually been applied yet so the role doesn't exist, or (d) someone added `environment:` to the job, which changes the token's `sub` claim (see #11).
 - **`deploy-dev` hangs on "wait for service stability"**: shouldn't happen now that the circuit breaker is enabled (see #10) — if it does, check the ECS service's "Deployments" tab in the console for the actual stopped-reason on failing tasks (almost always a missing/wrong Secrets Manager value — see the Terraform README's own "Troubleshooting").
 - **`CI passed` fails but every other job is green**: one of them was cancelled (e.g. by a newer push to the same PR) — look for a grey "cancelled" job and re-run.
-- **`Deploy (dev)` shows as skipped on a push to `main`**: expected when no image changed (e.g. a docs- or Terraform-only commit) — both build jobs were skipped, so there's nothing new to deploy. If images did change, check `CI passed`: a failing test blocks the deploy by design.
+- **`Deploy (dev)` shows as skipped on a push to `main`**: check `CI passed` — a failing test or build blocks the deploy by design. (Every push to `main` runs every job, so a skip is never just "nothing changed".)
 - **Smoke test fails but the ECS deployment itself succeeded**: `APP_HEALTH_URL` is probably wrong/stale, or the ALB's DNS hasn't propagated yet in a very fresh environment — re-run just that step.
 
 ## 15. Required GitHub repository configuration (branch protection)

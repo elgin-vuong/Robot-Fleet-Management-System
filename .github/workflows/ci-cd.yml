@@ -53,17 +53,25 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
+    # Path filtering is for PRs only. A push to main always runs everything:
+    # on push, paths-filter diffs against the previous main commit, so a
+    # force-push either finds no changes (same files under a new SHA, so
+    # nothing is built or deployed) or crashes fetching a commit the
+    # force-push erased. Running the full pipeline on main also re-tests the
+    # merged result, not just each PR on its own.
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-      terraform: ${{ steps.filter.outputs.terraform }}
-      images: ${{ steps.filter.outputs.images }}
+      backend: ${{ github.event_name == 'push' || steps.filter.outputs.backend == 'true' }}
+      frontend: ${{ github.event_name == 'push' || steps.filter.outputs.frontend == 'true' }}
+      terraform: ${{ github.event_name == 'push' || steps.filter.outputs.terraform == 'true' }}
+      images: ${{ github.event_name == 'push' || steps.filter.outputs.images == 'true' }}
     steps:
       - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
 
       # Editing this file counts as a change to everything, so pipeline
       # changes are always exercised end to end before they merge.
       - uses: dorny/paths-filter@v3
+        if: github.event_name == 'pull_request'
         id: filter
         with:
           filters: |
@@ -291,11 +299,11 @@ jobs:
   deploy-dev:
     name: Deploy (dev)
     needs: [ci-passed, build-backend, build-frontend]
-    # !cancelled() rather than the implicit success(): with success(), a test
-    # job skipped by the path filter (e.g. backend-ci on a frontend-only
-    # change) would skip the deploy too. ci-passed is what guarantees nothing
-    # failed; the build results are checked so a run with no image changes
-    # (both builds skipped) doesn't try to deploy a SHA that was never pushed.
+    # On main every job runs (see `changes`), so this is belt and braces:
+    # ci-passed guarantees nothing failed, and the build results are checked
+    # explicitly so the deploy can never point at an image SHA that wasn't
+    # pushed. !cancelled() rather than the implicit success() keeps this
+    # working if path filtering on main is ever reintroduced.
     if: >-
       !cancelled()
       && github.event_name == 'push' && github.ref == 'refs/heads/main'
